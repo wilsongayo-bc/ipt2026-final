@@ -3,6 +3,10 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService, User, UserRole } from '../../core/services/auth.service';
+import {
+  DatabaseEngine,
+  DatabaseService,
+} from '../../core/services/database.service';
 import { UserService } from '../../core/services/user.service';
 
 type UserFilter = 'all' | 'SuperAdmin' | 'Admin' | 'User' | 'disabled';
@@ -17,6 +21,7 @@ export class UsersComponent implements OnInit {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private userService = inject(UserService);
+  private databaseService = inject(DatabaseService);
 
   currentUser = this.authService.currentUser;
   isSuperAdmin = this.authService.isSuperAdmin;
@@ -29,6 +34,14 @@ export class UsersComponent implements OnInit {
   superAdminCount = this.userService.superAdminCount;
   adminCount = this.userService.adminCount;
   disabledCount = this.userService.disabledCount;
+
+  dbStatus = this.databaseService.status;
+  activeEngine = this.databaseService.activeEngine;
+  isDbLoading = this.databaseService.isLoading;
+  isTestingMysql = this.databaseService.isTesting;
+  isSwitchingDb = this.databaseService.isSwitching;
+  dbError = this.databaseService.error;
+  dbSuccessMessage = this.databaseService.successMessage;
 
   searchQuery = signal<string>('');
   activeFilter = signal<UserFilter>('all');
@@ -77,8 +90,39 @@ export class UsersComponent implements OnInit {
 
   ngOnInit(): void {
     this.userService.clearMessages();
+    this.databaseService.clearMessages();
     this.userService.loadUsers().subscribe({
       error: (err) => console.error('Failed to load users:', err),
+    });
+
+    if (this.isSuperAdmin()) {
+      this.databaseService.loadStatus().subscribe({
+        error: (err) => console.error('Failed to load database status:', err),
+      });
+    }
+  }
+
+  testMysqlConnection(): void {
+    if (!this.isSuperAdmin()) {
+      return;
+    }
+    this.databaseService.testMysql().subscribe({
+      error: (err) => console.error('MySQL connection test failed:', err),
+    });
+  }
+
+  switchDatabaseEngine(engine: DatabaseEngine): void {
+    if (!this.isSuperAdmin() || this.activeEngine() === engine) {
+      return;
+    }
+    this.userService.clearMessages();
+    this.databaseService.switchEngine(engine).subscribe({
+      next: () => {
+        this.userService.loadUsers().subscribe({
+          error: (err) => console.error('Failed to reload users:', err),
+        });
+      },
+      error: (err) => console.error('Failed to switch database engine:', err),
     });
   }
 

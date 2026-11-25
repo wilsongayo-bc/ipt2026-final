@@ -240,6 +240,11 @@ export class AuthService {
       );
   }
 
+  updateSession(token: string, user: User): void {
+    this.tokenSignal.set(token);
+    this.currentUserSignal.set(user);
+  }
+
   clearSession(): void {
     this.currentUserSignal.set(null);
     this.tokenSignal.set(null);

@@ -20,6 +20,115 @@
   </header>
 
   <main class="dashboard-content">
+    @if (isSuperAdmin()) {
+      <section class="welcome-card db-engine-panel">
+        <div class="users-header-row">
+          <div>
+            <h2>Database Engine (SuperAdmin)</h2>
+            <p class="users-summary">
+              Active storage:
+              <strong>
+                @if (activeEngine() === 'mysql') {
+                  Online MySQL
+                } @else {
+                  Local SQLite
+                }
+              </strong>
+              @if (dbStatus(); as status) {
+                @if (status.mysql.configured) {
+                  · MySQL target: {{ status.mysql.host }}:{{ status.mysql.port }}/{{
+                    status.mysql.database
+                  }}
+                } @else {
+                  · Online MySQL secrets not yet configured
+                }
+              }
+            </p>
+          </div>
+
+          <div class="header-actions-group">
+            <button
+              type="button"
+              class="btn btn-auto"
+              [class.btn-primary]="activeEngine() === 'sqlite'"
+              [class.btn-secondary]="activeEngine() !== 'sqlite'"
+              [disabled]="
+                isSwitchingDb() || isDbLoading() || activeEngine() === 'sqlite'
+              "
+              (click)="switchDatabaseEngine('sqlite')"
+            >
+              @if (activeEngine() === 'sqlite') {
+                Local SQLite (Active)
+              } @else {
+                Use Local SQLite
+              }
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-auto"
+              [class.btn-primary]="activeEngine() === 'mysql'"
+              [class.btn-secondary]="activeEngine() !== 'mysql'"
+              [disabled]="
+                isSwitchingDb() ||
+                isDbLoading() ||
+                activeEngine() === 'mysql' ||
+                !dbStatus()?.mysql?.configured
+              "
+              (click)="switchDatabaseEngine('mysql')"
+            >
+              @if (activeEngine() === 'mysql') {
+                Online MySQL (Active)
+              } @else if (isSwitchingDb()) {
+                Switching...
+              } @else {
+                Use Online MySQL
+              }
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-secondary btn-auto"
+              [disabled]="
+                isTestingMysql() ||
+                isSwitchingDb() ||
+                !dbStatus()?.mysql?.configured
+              "
+              (click)="testMysqlConnection()"
+            >
+              @if (isTestingMysql()) {
+                Testing MySQL...
+              } @else {
+                Test MySQL
+              }
+            </button>
+          </div>
+        </div>
+
+        @if (dbStatus() && !dbStatus()!.mysql.configured) {
+          <p class="db-meta-note">
+            To enable Online MySQL, add <code>MYSQL_HOST</code>,
+            <code>MYSQL_PORT</code>, <code>MYSQL_USER</code>,
+            <code>MYSQL_PASSWORD</code>, and <code>MYSQL_DATABASE</code> (or
+            <code>MYSQL_URL</code>) in Environment Secrets, then restart the
+            server.
+          </p>
+        }
+
+        @if (dbError()) {
+          <div class="alert alert-error">
+            {{ dbError() }}
+          </div>
+        }
+
+        @if (dbSuccessMessage()) {
+          <div class="alert alert-success">
+            {{ dbSuccessMessage() }}
+          </div>
+        }
+      </section>
+    }
+
     <div class="welcome-card">
       <div class="users-header-row">
         <div>
