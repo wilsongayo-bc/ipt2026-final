@@ -1,0 +1,220 @@
+<div class="dashboard">
+  <header class="dashboard-header">
+    <div class="header-brand-nav">
+      <h1>User Management</h1>
+      <nav class="header-nav" aria-label="Primary navigation">
+        <a routerLink="/dashboard" class="nav-link">Overview</a>
+        <a routerLink="/users" class="nav-link active">User Management</a>
+      </nav>
+    </div>
+
+    @if (currentUser(); as user) {
+      <div class="user-info">
+        <span class="user-greeting">
+          {{ user.name }} · {{ user.role }}
+        </span>
+        <button (click)="logout()" class="btn btn-secondary">Logout</button>
+      </div>
+    }
+  </header>
+
+  <main class="dashboard-content">
+    <div class="welcome-card">
+      <div class="users-header-row">
+        <div>
+          <h2>Directory & Role Controls</h2>
+          <p class="users-summary tabular-date">
+            {{ users().length }} total · {{ superAdminCount() }} SuperAdmin ·
+            {{ adminCount() }} Admin · {{ disabledCount() }} Disabled
+          </p>
+        </div>
+
+        <button
+          type="button"
+          (click)="refresh()"
+          [disabled]="isLoading()"
+          class="btn btn-secondary btn-auto"
+        >
+          @if (isLoading()) {
+            Refreshing...
+          } @else {
+            Refresh List
+          }
+        </button>
+      </div>
+
+      @if (error()) {
+        <div class="alert alert-error">
+          {{ error() }}
+        </div>
+      }
+
+      @if (successMessage()) {
+        <div class="alert alert-success">
+          {{ successMessage() }}
+        </div>
+      }
+
+      <div class="users-toolbar">
+        <input
+          type="search"
+          class="search-input"
+          placeholder="Search by name or email..."
+          [value]="searchQuery()"
+          (input)="onSearch($event)"
+          aria-label="Search users"
+        />
+
+        <div class="filter-tabs" role="group" aria-label="Filter users">
+          <button
+            type="button"
+            class="filter-tab"
+            [class.active]="activeFilter() === 'all'"
+            (click)="setFilter('all')"
+          >
+            All
+          </button>
+          <button
+            type="button"
+            class="filter-tab"
+            [class.active]="activeFilter() === 'SuperAdmin'"
+            (click)="setFilter('SuperAdmin')"
+          >
+            SuperAdmin
+          </button>
+          <button
+            type="button"
+            class="filter-tab"
+            [class.active]="activeFilter() === 'Admin'"
+            (click)="setFilter('Admin')"
+          >
+            Admins
+          </button>
+          <button
+            type="button"
+            class="filter-tab"
+            [class.active]="activeFilter() === 'User'"
+            (click)="setFilter('User')"
+          >
+            Users
+          </button>
+          <button
+            type="button"
+            class="filter-tab"
+            [class.active]="activeFilter() === 'disabled'"
+            (click)="setFilter('disabled')"
+          >
+            Disabled
+          </button>
+        </div>
+      </div>
+
+      @if (isLoading() && users().length === 0) {
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Loading users...</p>
+        </div>
+      } @else if (filteredUsers().length === 0) {
+        <div class="empty-state">
+          <p>No users match your current filter.</p>
+        </div>
+      } @else {
+        <div class="table-wrapper">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>User</th>
+                <th>Status</th>
+                <th>Role</th>
+                <th>Joined</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (user of filteredUsers(); track user.id) {
+                <tr [class.row-disabled]="user.isDisabled">
+                  <td class="tabular-date">#{{ user.id }}</td>
+                  <td>
+                    <div class="user-cell-name">
+                      {{ user.name }}
+                      @if (user.id === currentUser()?.id) {
+                        <span class="self-tag">(You)</span>
+                      }
+                    </div>
+                    <div class="user-cell-email">{{ user.email }}</div>
+                  </td>
+                  <td>
+                    <span class="status-text">
+                      @if (user.isActive) {
+                        Verified
+                      } @else {
+                        Pending
+                      }
+                      ·
+                      @if (user.isDisabled) {
+                        <span class="text-danger">Disabled</span>
+                      } @else {
+                        <span class="text-success">Active</span>
+                      }
+                    </span>
+                  </td>
+                  <td>
+                    <select
+                      class="role-select"
+                      [attr.aria-label]="'Role for ' + user.name"
+                      [disabled]="
+                        !canEditRole(user) || updatingUserId() === user.id
+                      "
+                      (change)="onRoleChange(user, $event)"
+                    >
+                      @if (isSuperAdmin() || user.role === 'SuperAdmin') {
+                        <option
+                          value="SuperAdmin"
+                          [selected]="user.role === 'SuperAdmin'"
+                        >
+                          SuperAdmin
+                        </option>
+                      }
+                      <option value="Admin" [selected]="user.role === 'Admin'">
+                        Admin
+                      </option>
+                      <option value="User" [selected]="user.role === 'User'">
+                        User
+                      </option>
+                    </select>
+                  </td>
+                  <td class="tabular-date">
+                    {{ user.createdAt | date: 'mediumDate' }}
+                  </td>
+                  <td>
+                    @if (user.role === 'Admin' || user.role === 'SuperAdmin') {
+                      <span class="muted-text">Protected</span>
+                    } @else {
+                      <button
+                        type="button"
+                        class="btn btn-sm"
+                        [class.btn-danger]="!user.isDisabled"
+                        [class.btn-secondary]="user.isDisabled"
+                        [disabled]="updatingUserId() === user.id"
+                        (click)="toggleDisabled(user)"
+                      >
+                        @if (updatingUserId() === user.id) {
+                          Updating...
+                        } @else if (user.isDisabled) {
+                          Enable
+                        } @else {
+                          Disable
+                        }
+                      </button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </main>
+</div>

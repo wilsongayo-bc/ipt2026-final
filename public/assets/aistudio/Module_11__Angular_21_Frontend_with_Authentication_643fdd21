@@ -1,0 +1,3815 @@
+﻿Module 11 Lecture Notes: Angular 21 Frontend with Authentication
+1. Welcome to Modern Angular (2026 Edition)
+Instructor Cue: Start by asking, "How many of you have heard that Angular is 'dead' or 'too heavy'?" Then say: "Angular 21 in 2026 is a completely different framework than Angular 2 from 2016. It's lighter, faster, and more modern than ever. Let me show you why."
+A. Angular's Renaissance
+Angular has undergone a massive transformation since 2022:
+Old Angular (2016-2021)
+	Modern Angular (2022-2026)
+	NgModules everywhere
+	Standalone Components (no modules)
+	RxJS for everything
+	Signals for simple state
+	*ngIf, *ngFor directives
+	Built-in Control Flow (@if, @for)
+	Class-based interceptors
+	Functional Interceptors
+	Class-based guards
+	Functional Guards
+	Zone.js change detection
+	Zoneless (optional)
+	Heavy bundle sizes
+	Deferrable Views (@defer)
+	Complex boilerplate
+	Clean, minimal code
+	B. Why Angular 21 in 2026?
+1. Enterprise Adoption
+* Used by: Google, Microsoft, Samsung, Deutsche Bank, Forbes
+* Perfect for large-scale applications
+* Built-in tooling (CLI, testing, i18n)
+2. TypeScript-First
+* Same language as your Node.js backend
+* Type safety across the entire stack
+* Shared interfaces between frontend and backend
+3. Modern Developer Experience
+* Fast builds with esbuild/Vite
+* Hot module replacement
+* Excellent IDE support (Angular Language Service)
+4. The "Integrative" Choice
+* Perfect complement to your Node.js/TypeScript backend
+* Both use TypeScript, decorators, similar patterns
+* TypeORM decorators feel familiar (@Entity → @Component)
+Key Takeaway: Angular 21 is not your grandfather's Angular. It's a modern, fast, developer-friendly framework that's perfect for enterprise applications.
+________________
+
+
+2. Angular 21 Modern Features Deep Dive
+Instructor Cue: "Before we build, let's understand the three game-changing features that make Angular 21 so powerful."
+A. Standalone Components (No More NgModules)
+
+
+Old Way (Angular 16 and earlier):
+// user.module.ts
+@NgModule({
+   declarations: [UserComponent],
+   imports: [CommonModule, FormsModule],
+   exports: [UserComponent]
+})
+export class UserModule {}
+
+
+// user.component.ts
+@Component({ ... })
+export class UserComponent {}
+
+
+New Way (Angular 21):
+// user.component.ts
+@Component({
+   selector: 'app-user',
+   standalone: true,  // ← That's it!
+   imports: [CommonModule, FormsModule],  // Import directly
+   templateUrl: './user.component.html'
+})
+export class UserComponent {}
+
+
+Why this matters:
+* No more module files cluttering your project
+* Easier to understand (imports are right where you use them)
+* Better tree-shaking (only import what you need)
+* Faster learning curve for beginners
+B. Signals: The New Reactive Primitive
+Signals are reactive values that automatically update the UI when they change.
+import { signal, computed, effect } from '@angular/core';
+
+
+// Create a signal
+const count = signal(0);
+
+
+// Read the value
+console.log(count());  // 0
+
+
+// Update the value
+count.set(5);
+count.update(value => value + 1);  // 6
+
+
+// Computed signal (derived value)
+const doubleCount = computed(() => count() * 2);
+console.log(doubleCount());  // 12
+
+
+// Effect (side effect when signal changes)
+effect(() => {
+   console.log(`Count changed to: ${count()}`);
+});
+
+
+Why Signals over RxJS for auth state?
+RxJS BehaviorSubject
+	Signal
+	currentUser$ (Observable)
+	currentUser (Signal)
+	currentUser$.subscribe(...)
+	currentUser()
+	currentUser$.next(user)
+	currentUser.set(user)
+	Complex operators
+	Simple, intuitive API
+	Need async pipe in templates
+	Auto-tracks in templates
+	
+
+For authentication state, Signals are perfect because:
+* Auth state is simple (logged in or not, current user)
+* No complex stream operations needed
+* Templates auto-update when signal changes
+* Easier to test and reason about
+C. Built-in Control Flow
+Old Way (Directives):
+<div *ngIf="isLoggedIn">
+   <p>Welcome, {{ user.name }}</p>
+</div>
+
+
+<ul>
+   <li *ngFor="let task of tasks">
+       {{ task.title }}
+   </li>
+</ul>
+
+
+New Way (Built-in Control Flow):
+if (isLoggedIn) {
+   <p>Welcome, {{ user().name }}</p>
+}
+
+
+<ul>
+   @for (task of tasks; track task.id) {
+       <li>{{ task.title }}</li>
+   } @empty {
+       <li>No tasks yet</li>
+   }
+</ul>
+
+
+Why this is better:
+* No more *ngIf, *ngFor, *ngSwitch directives
+* Cleaner, more readable templates
+* Better performance (no directive overhead)
+* Feels like modern JavaScript (similar to JSX/Svelte)
+D. Deferrable Views (@defer)
+Lazy-load parts of your template for better performance:
+<!-- Heavy component loads only when visible -->
+@defer (on viewport) {
+   <app-expensive-chart />
+} @placeholder {
+   <p>Loading chart...</p>
+} @loading {
+   <app-spinner />
+}
+
+
+Key Takeaway: Angular 21 is built around three pillars: Standalone Components, Signals, and Built-in Control Flow. Master these, and you master modern Angular.
+________________
+
+
+3. Project Setup: Creating the Angular 21 App
+Instructor Cue: "Let's create our Angular frontend. This will connect to the Node.js backend you just built."
+A. Installation
+# Install Angular CLI globally (if not already)
+npm install -g @angular/cli
+
+
+# Create new project
+ng new auth-frontend --standalone --routing --style=css --ssr=false
+
+
+# Navigate to project
+cd auth-frontend
+
+
+# Start dev server
+ng serve
+
+
+Key flags explained:
+* --standalone: Use standalone components (no NgModules)
+* --routing: Include Angular Router
+* --style=css: Use plain CSS (can change to SCSS)
+* --ssr=false: No server-side rendering (SPA)
+B. Project Structure
+  
+
+C. Environment Configuration
+src/environments/environment.ts:
+export const environment = {
+   production: false,
+   apiUrl: 'http://localhost:3000/api',
+   frontendUrl: 'http://localhost:4200',
+};
+
+
+src/environments/environment.prod.ts:
+export const environment = {
+   production: true,
+   apiUrl: 'https://your-api.onrender.com/api',
+   frontendUrl: 'https://your-app.vercel.app',
+};
+D. App Configuration
+src/app/app.config.ts:
+import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import { provideRouter } from '@angular/router';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideAnimations } from '@angular/platform-browser/animations';
+
+
+import { routes } from './app.routes';
+import { authInterceptor } from './core/interceptors/auth.interceptor';
+import { errorInterceptor } from './core/interceptors/error.interceptor';
+
+
+export const appConfig: ApplicationConfig = {
+   providers: [
+       provideZoneChangeDetection({ eventCoalescing: true }),
+       provideRouter(routes),
+       provideHttpClient(
+           withInterceptors([authInterceptor, errorInterceptor])
+       ),
+       provideAnimations(),
+   ],
+};
+
+
+Checkpoint 1: Your Angular 21 project is set up with modern configuration. Run ng serve and open http://localhost:4200 to see it working.
+________________
+
+
+4: Authentication Service with Signals
+Instructor Cue: "The AuthService is the heart of your frontend authentication. It manages login state, stores tokens, and exposes reactive signals for the UI."
+A. Create the Auth Service
+src/app/core/services/auth.service.ts:
+import { Injectable, inject, signal, computed } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
+import { Observable, tap, map } from 'rxjs';
+import { environment } from '../../../environments/environment';
+
+
+// Interfaces matching backend DTOs
+export interface User {
+   id: number;
+   name: string;
+   email: string;
+   isActive: boolean;
+   createdAt: string;
+}
+
+
+export interface LoginRequest {
+   email: string;
+   password: string;
+}
+
+
+export interface RegisterRequest {
+   name: string;
+   email: string;
+   password: string;
+   age?: number;
+}
+
+
+export interface AuthResponse {
+   token: string;
+   user: User;
+}
+
+
+export interface ApiResponse<T> {
+   success: boolean;
+   message?: string;
+   data?: T;
+   error?: {
+       code: string;
+       message: string;
+       details?: any;
+   };
+}
+
+
+@Injectable({
+   providedIn: 'root'
+})
+export class AuthService {
+   private http = inject(HttpClient);
+   private router = inject(Router);
+   private apiUrl = environment.apiUrl;
+
+
+   // === SIGNALS (Reactive State) ===
+  
+   // Current user signal
+   private currentUserSignal = signal<User | null>(this.getStoredUser());
+  
+   // Token signal
+   private tokenSignal = signal<string | null>(this.getStoredToken());
+  
+   // Loading state
+   private loadingSignal = signal<boolean>(false);
+  
+   // Error message
+   private errorSignal = signal<string | null>(null);
+
+
+   // === COMPUTED SIGNALS (Derived State) ===
+  
+   // Is user logged in?
+   isLoggedIn = computed(() => !!this.tokenSignal() && !!this.currentUserSignal());
+  
+   // Current user (public read-only)
+   currentUser = computed(() => this.currentUserSignal());
+  
+   // Current token (for interceptor)
+   currentToken = computed(() => this.tokenSignal());
+  
+   // Loading state
+   isLoading = computed(() => this.loadingSignal());
+  
+   // Error message
+   error = computed(() => this.errorSignal());
+
+
+   // === METHODS ===
+
+
+   /**
+    * Login user
+    */
+   login(credentials: LoginRequest): Observable<AuthResponse> {
+       this.loadingSignal.set(true);
+       this.errorSignal.set(null);
+
+
+       return this.http.post<ApiResponse<AuthResponse>>(
+           `${this.apiUrl}/auth/login`,
+           credentials
+       ).pipe(
+           tap({
+               next: (response) => {
+                   if (response.success && response.data) {
+                       this.handleLoginSuccess(response.data);
+                   }
+               },
+               error: (error) => {
+                   this.loadingSignal.set(false);
+                   this.errorSignal.set(
+                       error.error?.error?.message || 'Login failed'
+                   );
+               }
+           }),
+           map(response => {
+               this.loadingSignal.set(false);
+               return response.data!;
+           })
+       );
+   }
+
+
+   /**
+    * Register new user
+    */
+   register(data: RegisterRequest): Observable<{ message: string }> {
+       this.loadingSignal.set(true);
+       this.errorSignal.set(null);
+
+
+       return this.http.post<ApiResponse<{ message: string; userId: number }>>(
+           `${this.apiUrl}/auth/register`,
+           data
+       ).pipe(
+           tap({
+               error: (error) => {
+                   this.loadingSignal.set(false);
+                   this.errorSignal.set(
+                       error.error?.error?.message || 'Registration failed'
+                   );
+               }
+           }),
+           map(response => {
+               this.loadingSignal.set(false);
+               return { message: response.data?.message || 'Registration successful' };
+           })
+       );
+   }
+
+
+   /**
+    * Verify email with token
+    */
+   verifyEmail(token: string): Observable<{ message: string }> {
+       return this.http.get<ApiResponse<null>>(
+           `${this.apiUrl}/auth/verify-email?token=${token}`
+       ).pipe(
+           map(response => ({
+               message: response.message || 'Email verified successfully'
+           }))
+       );
+   }
+
+
+   /**
+    * Request password reset
+    */
+   forgotPassword(email: string): Observable<{ message: string }> {
+       return this.http.post<ApiResponse<null>>(
+           `${this.apiUrl}/auth/forgot-password`,
+           { email }
+       ).pipe(
+           map(response => ({
+               message: response.message || 'Reset link sent'
+           }))
+       );
+   }
+
+
+   /**
+    * Reset password with token
+    */
+   resetPassword(token: string, newPassword: string): Observable<{ message: string }> {
+       return this.http.post<ApiResponse<null>>(
+           `${this.apiUrl}/auth/reset-password`,
+           { token, newPassword }
+       ).pipe(
+           map(response => ({
+               message: response.message || 'Password reset successful'
+           }))
+       );
+   }
+
+
+   /**
+    * Get current user from backend
+    */
+   getCurrentUser(): Observable<User> {
+       return this.http.get<ApiResponse<User>>(`${this.apiUrl}/auth/me`).pipe(
+           map(response => response.data!)
+       );
+   }
+
+
+   /**
+    * Logout user
+    */
+   logout(): void {
+       // Clear signals
+       this.currentUserSignal.set(null);
+       this.tokenSignal.set(null);
+      
+       // Clear storage
+       localStorage.removeItem('auth_token');
+       localStorage.removeItem('current_user');
+      
+       // Navigate to login
+       this.router.navigate(['/auth/login']);
+   }
+
+
+   /**
+    * Clear error message
+    */
+   clearError(): void {
+       this.errorSignal.set(null);
+   }
+
+
+   // === PRIVATE HELPERS ===
+
+
+   private handleLoginSuccess(authData: AuthResponse): void {
+       // Update signals
+       this.tokenSignal.set(authData.token);
+       this.currentUserSignal.set(authData.user);
+      
+       // Persist to storage
+       localStorage.setItem('auth_token', authData.token);
+       localStorage.setItem('current_user', JSON.stringify(authData.user));
+   }
+
+
+   private getStoredToken(): string | null {
+       return localStorage.getItem('auth_token');
+   }
+
+
+   private getStoredUser(): User | null {
+       const stored = localStorage.getItem('current_user');
+       return stored ? JSON.parse(stored) : null;
+   }
+}
+B. Why This Design?
+1. Signals for State Management:
+* currentUserSignal - Reactive user data
+* tokenSignal - Reactive token
+* loadingSignal - UI loading states
+* errorSignal - Error messages
+2. Computed Signals:
+* isLoggedIn - Derived from token + user
+* currentUser - Public read-only access
+* currentToken - Used by interceptor
+3. Single Source of Truth:
+* All auth state in one service
+* Components just read signals
+* No scattered state across components
+4. Type Safety:
+* Interfaces match backend DTOs
+* Compile-time error checking
+* IDE autocomplete
+Checkpoint 2: Your AuthService is complete with modern Signals-based state management.
+________________
+
+
+5: HTTP Interceptor for Automatic Token Attachment
+Instructor Cue: "Every authenticated request needs the JWT token in the Authorization header. Instead of adding it manually to every HTTP call, we'll use an interceptor to do it automatically."
+A. Create the Auth Interceptor
+src/app/core/interceptors/auth.interceptor.ts:
+import { HttpInterceptorFn } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { AuthService } from '../services/auth.service';
+
+
+export const authInterceptor: HttpInterceptorFn = (req, next) => {
+   const authService = inject(AuthService);
+   const token = authService.currentToken();
+
+
+   // If we have a token, clone the request and add Authorization header
+   if (token) {
+       const authReq = req.clone({
+           setHeaders: {
+               Authorization: `Bearer ${token}`
+           }
+       });
+       return next(authReq);
+   }
+
+
+   // No token, pass through the original request
+   return next(req);
+};
+B. Create the Error Interceptor
+src/app/core/interceptors/error.interceptor.ts:
+import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { catchError, throwError } from 'rxjs';
+import { AuthService } from '../services/auth.service';
+import { Router } from '@angular/router';
+
+
+export const errorInterceptor: HttpInterceptorFn = (req, next) => {
+   const authService = inject(AuthService);
+   const router = inject(Router);
+
+
+   return next(req).pipe(
+       catchError((error: HttpErrorResponse) => {
+           // Handle 401 Unauthorized (token expired or invalid)
+           if (error.status === 401) {
+               authService.logout();
+               router.navigate(['/auth/login'], {
+                   queryParams: { returnUrl: req.url }
+               });
+           }
+
+
+           // Handle 403 Forbidden
+           if (error.status === 403) {
+               console.error('Access denied:', error.error?.error?.message);
+           }
+
+
+           // Re-throw the error for component-level handling
+           return throwError(() => error);
+       })
+   );
+};
+C. How Interceptors Work
+  
+
+Benefits:
+* DRY Principle: Add token once, applies to all requests
+* Centralized Error Handling: Handle 401/403 in one place
+* Clean Components: Components don't worry about auth headers
+* Automatic Logout: Token expired? User gets logged out automatically
+Checkpoint 3: Your interceptors automatically attach tokens and handle auth errors.
+________________
+
+
+6: Route Guards for Protected Routes
+Instructor Cue: "Not all pages should be accessible to everyone. Route guards prevent unauthorized access and redirect users appropriately."
+A. Create the Auth Guard
+src/app/core/guards/auth.guard.ts:
+import { inject } from '@angular/core';
+import { CanActivateFn, Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
+
+
+export const authGuard: CanActivateFn = (route, state) => {
+   const authService = inject(AuthService);
+   const router = inject(Router);
+
+
+   if (authService.isLoggedIn()) {
+       // User is logged in, allow access
+       return true;
+   }
+
+
+   // User is not logged in, redirect to login with return URL
+   router.navigate(['/auth/login'], {
+       queryParams: { returnUrl: state.url }
+   });
+  
+   return false;
+};
+B. Create the Guest Guard (Redirect if Logged In)
+src/app/core/guards/guest.guard.ts:
+import { inject } from '@angular/core';
+import { CanActivateFn, Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
+
+
+export const guestGuard: CanActivateFn = (route, state) => {
+   const authService = inject(AuthService);
+   const router = inject(Router);
+
+
+   if (!authService.isLoggedIn()) {
+       // User is not logged in, allow access to guest pages
+       return true;
+   }
+
+
+   // User is already logged in, redirect to dashboard
+   router.navigate(['/dashboard']);
+  
+   return false;
+};
+C. Configure Routes with Guards
+src/app/app.routes.ts:
+import { Routes } from '@angular/router';
+import { authGuard } from './core/guards/auth.guard';
+import { guestGuard } from './core/guards/guest.guard';
+
+
+export const routes: Routes = [
+   // Public routes (redirect to dashboard if logged in)
+   {
+       path: 'auth',
+       canActivate: [guestGuard],
+       children: [
+           {
+               path: 'login',
+               loadComponent: () =>
+                   import('./features/auth/login/login.component')
+                   .then(m => m.LoginComponent)
+           },
+           {
+               path: 'register',
+               loadComponent: () =>
+                   import('./features/auth/register/register.component')
+                   .then(m => m.RegisterComponent)
+           },
+           {
+               path: 'forgot-password',
+               loadComponent: () =>
+                   import('./features/auth/forgot-password/forgot-password.component')
+                   .then(m => m.ForgotPasswordComponent)
+           },
+           {
+               path: 'reset-password',
+               loadComponent: () =>
+                   import('./features/auth/reset-password/reset-password.component')
+                   .then(m => m.ResetPasswordComponent)
+           },
+       ]
+   },
+  
+   // Email verification (accessible whether logged in or not)
+   {
+       path: 'verify-email',
+       loadComponent: () =>
+           import('./features/auth/verify-email/verify-email.component')
+           .then(m => m.VerifyEmailComponent)
+   },
+  
+   // Protected routes (require authentication)
+   {
+       path: 'dashboard',
+       canActivate: [authGuard],
+       loadComponent: () =>
+           import('./features/dashboard/dashboard.component')
+           .then(m => m.DashboardComponent)
+   },
+  
+   // Default route
+   {
+       path: '',
+       redirectTo: '/dashboard',
+       pathMatch: 'full'
+   },
+  
+   // Wildcard route (404)
+   {
+       path: '**',
+       redirectTo: '/dashboard'
+   }
+];
+D. Lazy Loading Components
+Notice the loadComponent syntax — this is lazy loading:
+loadComponent: () =>
+   import('./features/auth/login/login.component')
+   .then(m => m.LoginComponent)
+
+
+Benefits:
+* Component code only loaded when route is visited
+* Smaller initial bundle size
+* Faster initial page load
+* Better performance
+🎉 Checkpoint 4: Your routes are protected with guards and lazy-loaded for performance.
+________________
+
+
+7: Building Auth UI Components
+Instructor Cue: "Now let's build the actual UI components. We'll use Reactive Forms for robust validation and the new built-in control flow for clean templates."
+A. Login Component
+src/app/features/auth/login/login.component.ts:
+import { Component, inject, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
+
+
+@Component({
+   selector: 'app-login',
+   standalone: true,
+   imports: [CommonModule, ReactiveFormsModule, RouterLink],
+   templateUrl: './login.component.html',
+   styleUrl: './login.component.css'
+})
+export class LoginComponent implements OnInit {
+   private fb = inject(FormBuilder);
+   private authService = inject(AuthService);
+   private router = inject(Router);
+   private route = inject(ActivatedRoute);
+
+
+   private returnUrl = '/dashboard';
+
+
+   loginForm = this.fb.group({
+       email: ['', [Validators.required, Validators.email]],
+       password: ['', [Validators.required, Validators.minLength(8)]]
+   });
+
+
+   // Expose signals to template
+   isLoading = this.authService.isLoading;
+   error = this.authService.error;
+
+
+   ngOnInit(): void {
+       // Get return URL from query params
+       this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
+   }
+
+
+   onSubmit(): void {
+       if (this.loginForm.invalid) {
+           this.loginForm.markAllAsTouched();
+           return;
+       }
+
+
+       const { email, password } = this.loginForm.value;
+      
+       this.authService.login({ email!, password! }).subscribe({
+           next: () => {
+               this.router.navigateByUrl(this.returnUrl);
+           },
+           error: (error) => {
+               // Error is already handled by AuthService signal
+               console.error('Login failed:', error);
+           }
+       });
+   }
+
+
+   // Helper for template
+   get f() {
+       return this.loginForm.controls;
+   }
+}
+
+
+src/app/features/auth/login/login.component.html:
+<div class="auth-container">
+   <div class="auth-card">
+       <h1>Welcome Back</h1>
+       <p class="subtitle">Sign in to your account</p>
+
+
+       @if (error()) {
+           <div class="alert alert-error">
+               {{ error() }}
+           </div>
+       }
+
+
+       <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+           <div class="form-group">
+               <label for="email">Email</label>
+               <input
+                   type="email"
+                   id="email"
+                   formControlName="email"
+                   placeholder="you@example.com"
+                   [class.error]="f.email.touched && f.email.invalid"
+               >
+               @if (f.email.touched && f.email.invalid) {
+                   <small class="error-message">
+                       @if (f.email.errors?.['required']) {
+                           Email is required
+                       }
+                       @if (f.email.errors?.['email']) {
+                           Please enter a valid email
+                       }
+                   </small>
+               }
+           </div>
+
+
+           <div class="form-group">
+               <label for="password">Password</label>
+               <input
+                   type="password"
+                   id="password"
+                   formControlName="password"
+                   placeholder="••••••••"
+                   [class.error]="f.password.touched && f.password.invalid"
+               >
+               @if (f.password.touched && f.password.invalid) {
+                   <small class="error-message">
+                       @if (f.password.errors?.['required']) {
+                           Password is required
+                       }
+                       @if (f.password.errors?.['minlength']) {
+                           Password must be at least 8 characters
+                       }
+                   </small>
+               }
+           </div>
+
+
+           <div class="form-actions">
+               <a routerLink="/auth/forgot-password" class="link">
+                   Forgot password?
+               </a>
+           </div>
+
+
+           <button
+               type="submit"
+               class="btn btn-primary"
+               [disabled]="isLoading()"
+           >
+               @if (isLoading()) {
+                   Signing in...
+               } @else {
+                   Sign In
+               }
+           </button>
+       </form>
+
+
+       <p class="auth-footer">
+           Don't have an account?
+           <a routerLink="/auth/register" class="link">Sign up</a>
+       </p>
+   </div>
+</div>
+B. Register Component
+src/app/features/auth/register/register.component.ts:
+import { Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
+
+
+@Component({
+   selector: 'app-register',
+   standalone: true,
+   imports: [CommonModule, ReactiveFormsModule, RouterLink],
+   templateUrl: './register.component.html',
+   styleUrl: './register.component.css'
+})
+export class RegisterComponent {
+   private fb = inject(FormBuilder);
+   private authService = inject(AuthService);
+   private router = inject(Router);
+
+
+   successMessage: string | null = null;
+
+
+   registerForm = this.fb.group({
+       name: ['', [Validators.required, Validators.minLength(2)]],
+       email: ['', [Validators.required, Validators.email]],
+       password: ['', [
+           Validators.required,
+           Validators.minLength(8),
+           Validators.pattern(/^(?=.*[A-Za-z])(?=.*\d)/)
+       ]],
+       confirmPassword: ['', Validators.required],
+       age: [null, [Validators.min(13), Validators.max(120)]]
+   });
+
+
+   isLoading = this.authService.isLoading;
+   error = this.authService.error;
+
+
+   onSubmit(): void {
+       if (this.registerForm.invalid) {
+           this.registerForm.markAllAsTouched();
+           return;
+       }
+
+
+       const { name, email, password, confirmPassword, age } = this.registerForm.value;
+
+
+       if (password !== confirmPassword) {
+           this.authService['errorSignal'].set('Passwords do not match');
+           return;
+       }
+
+
+       this.authService.register({ name!, email!, password!, age: age || undefined })
+           .subscribe({
+               next: (response) => {
+                   this.successMessage = response.message;
+                   this.registerForm.reset();
+               },
+               error: (error) => {
+                   console.error('Registration failed:', error);
+               }
+           });
+   }
+
+
+   get f() {
+       return this.registerForm.controls;
+   }
+}
+
+
+src/app/features/auth/register/register.component.html:
+<div class="auth-container">
+   <div class="auth-card">
+       <h1>Create Account</h1>
+       <p class="subtitle">Join us today</p>
+
+
+       @if (successMessage) {
+           <div class="alert alert-success">
+               <strong>✓ Success!</strong> {{ successMessage }}
+               <br><br>
+               <a routerLink="/auth/login" class="link">Go to login</a>
+           </div>
+       }
+
+
+       @if (error() && !successMessage) {
+           <div class="alert alert-error">
+               {{ error() }}
+           </div>
+       }
+
+
+       @if (!successMessage) {
+           <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+               <div class="form-group">
+                   <label for="name">Full Name</label>
+                   <input
+                       type="text"
+                       id="name"
+                       formControlName="name"
+                       placeholder="John Doe"
+                   >
+                   @if (f.name.touched && f.name.invalid) {
+                       <small class="error-message">Name is required</small>
+                   }
+               </div>
+
+
+               <div class="form-group">
+                   <label for="email">Email</label>
+                   <input
+                       type="email"
+                       id="email"
+                       formControlName="email"
+                       placeholder="you@example.com"
+                   >
+                   @if (f.email.touched && f.email.invalid) {
+                       <small class="error-message">Valid email required</small>
+                   }
+               </div>
+
+
+               <div class="form-group">
+                   <label for="password">Password</label>
+                   <input
+                       type="password"
+                       id="password"
+                       formControlName="password"
+                       placeholder="••••••••"
+                   >
+                   @if (f.password.touched && f.password.invalid) {
+                       <small class="error-message">
+                           Min 8 chars, 1 letter, 1 number
+                       </small>
+                   }
+               </div>
+
+
+               <div class="form-group">
+                   <label for="confirmPassword">Confirm Password</label>
+                   <input
+                       type="password"
+                       id="confirmPassword"
+                       formControlName="confirmPassword"
+                       placeholder="••••••••"
+                   >
+               </div>
+
+
+               <button
+                   type="submit"
+                   class="btn btn-primary"
+                   [disabled]="isLoading()"
+               >
+                   @if (isLoading()) {
+                       Creating account...
+                   } @else {
+                       Create Account
+                   }
+               </button>
+           </form>
+       }
+
+
+       <p class="auth-footer">
+           Already have an account?
+           <a routerLink="/auth/login" class="link">Sign in</a>
+       </p>
+   </div>
+</div>
+C. Verify Email Component
+src/app/features/auth/verify-email/verify-email.component.ts:
+import { Component, inject, OnInit, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
+
+
+@Component({
+   selector: 'app-verify-email',
+   standalone: true,
+   imports: [CommonModule, RouterLink],
+   templateUrl: './verify-email.component.html'
+})
+export class VerifyEmailComponent implements OnInit {
+   private route = inject(ActivatedRoute);
+   private router = inject(Router);
+   private authService = inject(AuthService);
+
+
+   status = signal<'loading' | 'success' | 'error'>('loading');
+   message = signal<string>('');
+
+
+   ngOnInit(): void {
+       const token = this.route.snapshot.queryParams['token'];
+
+
+       if (!token) {
+           this.status.set('error');
+           this.message.set('Invalid verification link');
+           return;
+       }
+
+
+       this.authService.verifyEmail(token).subscribe({
+           next: (response) => {
+               this.status.set('success');
+               this.message.set(response.message);
+           },
+           error: (error) => {
+               this.status.set('error');
+               this.message.set(
+                   error.error?.error?.message || 'Verification failed'
+               );
+           }
+       });
+   }
+}
+
+
+src/app/features/auth/verify-email/verify-email.component.html:
+<div class="auth-container">
+   <div class="auth-card">
+       @switch (status()) {
+           @case ('loading') {
+               <div class="loading-state">
+                   <div class="spinner"></div>
+                   <h2>Verifying your email...</h2>
+               </div>
+           }
+           @case ('success') {
+               <div class="success-state">
+                   <div class="icon success-icon">✓</div>
+                   <h2>Email Verified!</h2>
+                   <p>{{ message() }}</p>
+                   <a routerLink="/auth/login" class="btn btn-primary">
+                       Go to Login
+                   </a>
+               </div>
+           }
+           @case ('error') {
+               <div class="error-state">
+                   <div class="icon error-icon">✗</div>
+                   <h2>Verification Failed</h2>
+                   <p>{{ message() }}</p>
+                   <a routerLink="/auth/login" class="btn btn-secondary">
+                       Back to Login
+                   </a>
+               </div>
+           }
+       }
+   </div>
+</div>
+D. Forgot Password & Reset Password Components
+Similar structure — use Reactive Forms, call AuthService methods, show success/error states.
+
+
+Checkpoint 5: Your auth UI components are complete with modern Angular patterns.
+________________
+
+
+8: Dashboard Component (Protected Area)
+src/app/features/dashboard/dashboard.component.ts:
+import { Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
+import { AuthService } from '../../core/services/auth.service';
+
+
+@Component({
+   selector: 'app-dashboard',
+   standalone: true,
+   imports: [CommonModule, RouterLink],
+   templateUrl: './dashboard.component.html'
+})
+export class DashboardComponent {
+   private authService = inject(AuthService);
+
+
+   // Access signal values
+   currentUser = this.authService.currentUser;
+   isLoggedIn = this.authService.isLoggedIn;
+
+
+   logout(): void {
+       this.authService.logout();
+   }
+}
+
+
+src/app/features/dashboard/dashboard.component.html:
+<div class="dashboard">
+   <header class="dashboard-header">
+       <h1>Dashboard</h1>
+      
+       @if (currentUser(); as user) {
+           <div class="user-info">
+               <span>Welcome, {{ user.name }}!</span>
+               <button (click)="logout()" class="btn btn-secondary">
+                   Logout
+               </button>
+           </div>
+       }
+   </header>
+
+
+   <main class="dashboard-content">
+       <div class="welcome-card">
+           <h2>Welcome to Your Dashboard</h2>
+           @if (currentUser(); as user) {
+               <p>You are logged in as <strong>{{ user.email }}</strong></p>
+               <p>Account created: {{ user.createdAt | date:'medium' }}</p>
+           }
+       </div>
+
+
+       <div class="info-card">
+           <h3>Your Authentication Status</h3>
+           <ul>
+               <li>✓ JWT Token stored securely</li>
+               <li>✓ Email verified</li>
+               <li>✓ Protected routes working</li>
+               <li>✓ Automatic token refresh</li>
+           </ul>
+       </div>
+   </main>
+</div>
+
+
+Checkpoint 6: Your dashboard displays user data from the auth signal and provides logout functionality.
+________________
+
+
+9: Styling with CSS
+src/styles.css:
+/* Global Styles */
+* {
+   box-sizing: border-box;
+   margin: 0;
+   padding: 0;
+}
+
+
+body {
+   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+   line-height: 1.6;
+   color: #333;
+   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+   min-height: 100vh;
+}
+
+
+/* Auth Container */
+.auth-container {
+   display: flex;
+   justify-content: center;
+   align-items: center;
+   min-height: 100vh;
+   padding: 20px;
+}
+
+
+.auth-card {
+   background: white;
+   border-radius: 12px;
+   padding: 40px;
+   width: 100%;
+   max-width: 450px;
+   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+
+.auth-card h1 {
+   font-size: 28px;
+   margin-bottom: 8px;
+   color: #2d3748;
+}
+
+
+.subtitle {
+   color: #718096;
+   margin-bottom: 32px;
+}
+
+
+/* Form Styles */
+.form-group {
+   margin-bottom: 20px;
+}
+
+
+.form-group label {
+   display: block;
+   margin-bottom: 6px;
+   font-weight: 500;
+   color: #2d3748;
+}
+
+
+.form-group input {
+   width: 100%;
+   padding: 12px;
+   border: 2px solid #e2e8f0;
+   border-radius: 8px;
+   font-size: 14px;
+   transition: border-color 0.2s;
+}
+
+
+.form-group input:focus {
+   outline: none;
+   border-color: #667eea;
+}
+
+
+.form-group input.error {
+   border-color: #e53e3e;
+}
+
+
+.error-message {
+   color: #e53e3e;
+   font-size: 12px;
+   margin-top: 4px;
+   display: block;
+}
+
+
+/* Buttons */
+.btn {
+   padding: 12px 24px;
+   border: none;
+   border-radius: 8px;
+   font-size: 14px;
+   font-weight: 600;
+   cursor: pointer;
+   transition: all 0.2s;
+   width: 100%;
+}
+
+
+.btn-primary {
+   background: #667eea;
+   color: white;
+}
+
+
+.btn-primary:hover:not(:disabled) {
+   background: #5568d3;
+}
+
+
+.btn-primary:disabled {
+   opacity: 0.6;
+   cursor: not-allowed;
+}
+
+
+.btn-secondary {
+   background: #e2e8f0;
+   color: #2d3748;
+}
+
+
+.btn-secondary:hover {
+   background: #cbd5e0;
+}
+
+
+/* Alerts */
+.alert {
+   padding: 12px 16px;
+   border-radius: 8px;
+   margin-bottom: 20px;
+}
+
+
+.alert-error {
+   background: #fed7d7;
+   color: #c53030;
+   border-left: 4px solid #e53e3e;
+}
+
+
+.alert-success {
+   background: #c6f6d5;
+   color: #22543d;
+   border-left: 4px solid #38a169;
+}
+
+
+/* Links */
+.link {
+   color: #667eea;
+   text-decoration: none;
+   font-weight: 500;
+}
+
+
+.link:hover {
+   text-decoration: underline;
+}
+
+
+.form-actions {
+   text-align: right;
+   margin-bottom: 20px;
+}
+
+
+.auth-footer {
+   text-align: center;
+   margin-top: 24px;
+   color: #718096;
+}
+
+
+/* Dashboard */
+.dashboard {
+   min-height: 100vh;
+   background: #f7fafc;
+}
+
+
+.dashboard-header {
+   background: white;
+   padding: 20px 40px;
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+
+.dashboard-header h1 {
+   font-size: 24px;
+   color: #2d3748;
+}
+
+
+.user-info {
+   display: flex;
+   align-items: center;
+   gap: 16px;
+}
+
+
+.user-info .btn {
+   width: auto;
+}
+
+
+.dashboard-content {
+   max-width: 1200px;
+   margin: 40px auto;
+   padding: 0 20px;
+}
+
+
+.welcome-card, .info-card {
+   background: white;
+   padding: 32px;
+   border-radius: 12px;
+   margin-bottom: 24px;
+   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+
+.welcome-card h2 {
+   margin-bottom: 16px;
+   color: #2d3748;
+}
+
+
+.info-card h3 {
+   margin-bottom: 16px;
+   color: #2d3748;
+}
+
+
+.info-card ul {
+   list-style: none;
+}
+
+
+.info-card li {
+   padding: 8px 0;
+   color: #4a5568;
+}
+
+
+/* Loading Spinner */
+.spinner {
+   width: 40px;
+   height: 40px;
+   border: 4px solid #e2e8f0;
+   border-top-color: #667eea;
+   border-radius: 50%;
+   animation: spin 1s linear infinite;
+   margin: 0 auto 20px;
+}
+
+
+@keyframes spin {
+   to { transform: rotate(360deg); }
+}
+
+
+.loading-state, .success-state, .error-state {
+   text-align: center;
+   padding: 40px 20px;
+}
+
+
+.icon {
+   width: 80px;
+   height: 80px;
+   border-radius: 50%;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-size: 40px;
+   margin: 0 auto 20px;
+}
+
+
+.success-icon {
+   background: #c6f6d5;
+   color: #22543d;
+}
+
+
+.error-icon {
+   background: #fed7d7;
+   color: #c53030;
+}
+________________
+
+
+10: Testing the Complete Flow
+Instructor Cue: "Let's test everything end-to-end. This is where the magic happens — your Angular frontend talking to your Node.js backend."
+A. Start Both Servers
+
+
+Terminal 1 - Backend:
+cd professional-boilerplate
+npm run dev
+
+
+Terminal 2 - Frontend:
+cd auth-frontend
+ng serve
+B. Test Flow 1: Registration → Verification → Login
+1. Open browser: http://localhost:4200/auth/register
+2. Fill out registration form
+3. Submit → Success message appears
+4. Check backend terminal for Ethereal preview URL
+5. Click the verification link → Redirected to verify-email page
+6. Email verified → Go to login
+7. Login with credentials → Redirected to dashboard
+8. Dashboard shows user data ✓
+C. Test Flow 2: Forgot Password → Reset
+1. Click "Forgot password?" on login page
+2. Enter email → Success message
+3. Check Ethereal for reset email
+4. Click reset link → Reset password form
+5. Enter new password → Success
+6. Login with new password → Works! ✓
+D. Test Flow 3: Protected Routes
+1. Logout from dashboard
+2. Try to access http://localhost:4200/dashboard directly
+3. Redirected to login ✓
+4. Login → Redirected back to dashboard ✓
+E. Test Flow 4: Token Expiration
+1. Login and get token
+2. Wait 24 hours (or manually expire token in backend)
+3. Make API call → 401 Unauthorized
+4. Error interceptor catches it → Auto logout
+5. Redirected to login ✓
+________________
+
+
+11: Best Practices & Common Pitfalls
+Instructor Cue: "Let me share the mistakes I've seen developers make over and over again with Angular authentication."
+Pitfall 1: Storing Tokens Insecurely
+
+
+❌ BAD:
+// Don't do this
+localStorage.setItem('token', token);  // Vulnerable to XSS
+
+
+✅ BETTER:
+// Use httpOnly cookies (set by backend)
+// Or at minimum, use sessionStorage for short-lived tokens
+Pitfall 2: Not Handling Token Expiration
+
+
+❌ BAD:
+// Token expires but UI doesn't know
+// User clicks around, gets errors everywhere
+
+
+✅ GOOD:
+// Error interceptor catches 401 and auto-logs out
+if (error.status === 401) {
+   authService.logout();
+   router.navigate(['/auth/login']);
+}
+
+
+Pitfall 3: Scattered Auth State
+
+
+❌ BAD:
+// Multiple components managing their own auth state
+@Component({ ... })
+export class HeaderComponent {
+   isLoggedIn = localStorage.getItem('token') !== null;
+}
+
+
+@Component({ ... })
+export class SidebarComponent {
+   user = JSON.parse(localStorage.getItem('user') || 'null');
+}
+
+
+✅ GOOD:
+// Single source of truth in AuthService
+@Injectable({ ... })
+export class AuthService {
+   currentUser = signal<User | null>(...);
+   isLoggedIn = computed(() => !!this.currentUser());
+}
+
+
+Pitfall 4: Not Using Guards
+
+
+❌ BAD:
+// Check auth in every component
+ngOnInit() {
+   if (!localStorage.getItem('token')) {
+       this.router.navigate(['/login']);
+   }
+}
+
+
+✅ GOOD:
+// Use route guards
+{
+   path: 'dashboard',
+   canActivate: [authGuard],
+   component: DashboardComponent
+}
+Pitfall 5: Exposing Sensitive Data in Templates
+
+
+❌ BAD:
+<!-- Password visible in form state -->
+<p>Your password: {{ password }}</p>
+
+
+✅ GOOD:
+<!-- Never expose sensitive data -->
+<p>Welcome, {{ user().name }}</p>
+Pitfall 6: Not Clearing State on Logout
+
+
+❌ BAD:
+logout() {
+   localStorage.removeItem('token');
+   // Forgot to clear user data!
+   // Forgot to reset signals!
+}
+
+
+✅ GOOD:
+logout() {
+   this.currentUserSignal.set(null);
+   this.tokenSignal.set(null);
+   localStorage.removeItem('auth_token');
+   localStorage.removeItem('current_user');
+   this.router.navigate(['/auth/login']);
+}
+Best Practices Checklist
+* Use Signals for auth state (not BehaviorSubject)
+* Single source of truth in AuthService
+* HTTP Interceptor for automatic token attachment
+* Error Interceptor for 401 handling
+* Route Guards for protected routes
+* Lazy loading for better performance
+* Reactive Forms for validation
+* Built-in Control Flow for clean templates
+* Standalone Components (no NgModules)
+* Type safety with interfaces matching backend
+* Environment configs for different stages
+* Clear state on logout
+* Handle loading states in UI
+* Show error messages from backend
+________________
+
+
+🎯 Tie-in to Activity 12: Build Angular 21 Auth Frontend
+"Now that you understand modern Angular 21 development, it's time to build the complete frontend. In Activity 12, you will:
+1. Create the Angular 21 project with standalone components
+2. Build the AuthService with Signals for reactive state
+3. Create HTTP interceptors for automatic token handling
+4. Implement route guards for protected routes
+5. Build all auth UI components (login, register, verify, forgot/reset password)
+6. Create the dashboard showing authenticated user data
+7. Test the complete flow end-to-end with your backend
+This is the final integration piece. Your Angular frontend will consume the Node.js backend you built in the Semi-Final. Together, they form a complete, production-ready full-stack application.
+Remember: Modern Angular is about Signals, Standalone Components, and Built-in Control Flow. Master these three concepts, and you master Angular 21.
+Let's open our terminals and start building!"
+Hands-On Lab 12: Build Angular 21 Auth Frontend
+Objective: By the end of this lab, you will build a complete Angular 21 frontend application with modern features (Standalone Components, Signals, Built-in Control Flow) that implements full authentication: login, registration, email verification, forgot password, reset password, and a protected dashboard. This frontend will connect to your Node.js backend and demonstrate full-stack integration.
+Prerequisites:
+* You have completed Activity 11 (Email Verification & Password Reset backend)
+* Your Node.js backend is running on http://localhost:3000
+* Node.js (v20 or v22 LTS) is installed
+* Angular CLI is installed (npm install -g @angular/cli)
+* You have VS Code with Angular Language Service extension
+* You have a web browser (Chrome recommended)
+________________
+
+
+PART 1: Project Setup
+Instructor Cue: "Let's create our Angular 21 frontend. This will be a modern, standalone-component-based application that connects to your backend."
+Step 1: Create Angular Project
+Open your terminal and run:
+
+
+# Create new Angular project with modern defaults
+ng new auth-frontend --standalone --routing --style=css --ssr=false
+
+
+# Navigate to project
+cd auth-frontend
+
+
+Flags explained:
+* --standalone: Use standalone components (no NgModules)
+* --routing: Include Angular Router
+* --style=css: Use plain CSS
+* --ssr=false: Single Page Application (no server-side rendering)
+Step 2: Create Folder Structure
+Create the following folder structure inside src/app/:
+mkdir -p src/app/core/services
+mkdir -p src/app/core/interceptors
+mkdir -p src/app/core/guards
+mkdir -p src/app/features/auth/login
+mkdir -p src/app/features/auth/register
+mkdir -p src/app/features/auth/verify-email
+mkdir -p src/app/features/auth/forgot-password
+mkdir -p src/app/features/auth/reset-password
+mkdir -p src/app/features/dashboard
+
+
+Your structure should look like:
+src/app/
+├── core/
+│   ├── services/
+│   ├── interceptors/
+│   └── guards/
+├── features/
+│   ├── auth/
+│   │   ├── login/
+│   │   ├── register/
+│   │   ├── verify-email/
+│   │   ├── forgot-password/
+│   │   └── reset-password/
+│   └── dashboard/
+├── app.component.ts
+├── app.config.ts
+└── app.routes.ts
+Step 3: Configure Environments
+
+
+Create src/environments/environment.ts:
+export const environment = {
+   production: false,
+   apiUrl: 'http://localhost:3000/api',
+   frontendUrl: 'http://localhost:4200',
+};
+
+
+Create src/environments/environment.prod.ts:
+export const environment = {
+   production: true,
+   apiUrl: 'https://your-api-url.com/api',
+   frontendUrl: 'https://your-frontend-url.com',
+};
+Step 4: Start Development Server
+ng serve
+
+
+Open http://localhost:4200 in your browser. You should see the default Angular welcome page.
+
+
+Checkpoint 1: Your Angular 21 project is set up and running.
+________________
+
+
+PART 2: Create Authentication Service with Signals
+Instructor Cue: "The AuthService is the heart of your frontend authentication. It uses modern Signals for reactive state management."
+Step 5: Create Auth Service
+Create src/app/core/services/auth.service.ts:
+import { Injectable, inject, signal, computed } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
+import { Observable, tap, map } from 'rxjs';
+import { environment } from '../../../environments/environment';
+
+
+// Interfaces matching backend DTOs
+export interface User {
+   id: number;
+   name: string;
+   email: string;
+   isActive: boolean;
+   createdAt: string;
+}
+
+
+export interface LoginRequest {
+   email: string;
+   password: string;
+}
+
+
+export interface RegisterRequest {
+   name: string;
+   email: string;
+   password: string;
+   age?: number;
+}
+
+
+export interface AuthResponse {
+   token: string;
+   user: User;
+}
+
+
+export interface ApiResponse<T> {
+   success: boolean;
+   message?: string;
+   data?: T;
+   error?: {
+       code: string;
+       message: string;
+       details?: any;
+   };
+}
+
+
+@Injectable({
+   providedIn: 'root'
+})
+export class AuthService {
+   private http = inject(HttpClient);
+   private router = inject(Router);
+   private apiUrl = environment.apiUrl;
+
+
+   // === SIGNALS (Reactive State) ===
+   private currentUserSignal = signal<User | null>(this.getStoredUser());
+   private tokenSignal = signal<string | null>(this.getStoredToken());
+   private loadingSignal = signal<boolean>(false);
+   private errorSignal = signal<string | null>(null);
+
+
+   // === COMPUTED SIGNALS (Derived State) ===
+   isLoggedIn = computed(() => !!this.tokenSignal() && !!this.currentUserSignal());
+   currentUser = computed(() => this.currentUserSignal());
+   currentToken = computed(() => this.tokenSignal());
+   isLoading = computed(() => this.loadingSignal());
+   error = computed(() => this.errorSignal());
+
+
+   // === METHODS ===
+
+
+   login(credentials: LoginRequest): Observable<AuthResponse> {
+       this.loadingSignal.set(true);
+       this.errorSignal.set(null);
+
+
+       return this.http.post<ApiResponse<AuthResponse>>(
+           `${this.apiUrl}/auth/login`,
+           credentials
+       ).pipe(
+           tap({
+               next: (response) => {
+                   if (response.success && response.data) {
+                       this.handleLoginSuccess(response.data);
+                   }
+               },
+               error: (error) => {
+                   this.loadingSignal.set(false);
+                   this.errorSignal.set(
+                       error.error?.error?.message || 'Login failed'
+                   );
+               }
+           }),
+           map(response => {
+               this.loadingSignal.set(false);
+               return response.data!;
+           })
+       );
+   }
+
+
+   register(data: RegisterRequest): Observable<{ message: string }> {
+       this.loadingSignal.set(true);
+       this.errorSignal.set(null);
+
+
+       return this.http.post<ApiResponse<{ message: string; userId: number }>>(
+           `${this.apiUrl}/auth/register`,
+           data
+       ).pipe(
+           tap({
+               error: (error) => {
+                   this.loadingSignal.set(false);
+                   this.errorSignal.set(
+                       error.error?.error?.message || 'Registration failed'
+                   );
+               }
+           }),
+           map(response => {
+               this.loadingSignal.set(false);
+               return { message: response.data?.message || 'Registration successful' };
+           })
+       );
+   }
+
+
+   verifyEmail(token: string): Observable<{ message: string }> {
+       return this.http.get<ApiResponse<null>>(
+           `${this.apiUrl}/auth/verify-email?token=${token}`
+       ).pipe(
+           map(response => ({
+               message: response.message || 'Email verified successfully'
+           }))
+       );
+   }
+
+
+   forgotPassword(email: string): Observable<{ message: string }> {
+       return this.http.post<ApiResponse<null>>(
+           `${this.apiUrl}/auth/forgot-password`,
+           { email }
+       ).pipe(
+           map(response => ({
+               message: response.message || 'Reset link sent'
+           }))
+       );
+   }
+
+
+   resetPassword(token: string, newPassword: string): Observable<{ message: string }> {
+       return this.http.post<ApiResponse<null>>(
+           `${this.apiUrl}/auth/reset-password`,
+           { token, newPassword }
+       ).pipe(
+           map(response => ({
+               message: response.message || 'Password reset successful'
+           }))
+       );
+   }
+
+
+   getCurrentUser(): Observable<User> {
+       return this.http.get<ApiResponse<User>>(`${this.apiUrl}/auth/me`).pipe(
+           map(response => response.data!)
+       );
+   }
+
+
+   logout(): void {
+       this.currentUserSignal.set(null);
+       this.tokenSignal.set(null);
+       localStorage.removeItem('auth_token');
+       localStorage.removeItem('current_user');
+       this.router.navigate(['/auth/login']);
+   }
+
+
+   clearError(): void {
+       this.errorSignal.set(null);
+   }
+
+
+   // === PRIVATE HELPERS ===
+
+
+   private handleLoginSuccess(authData: AuthResponse): void {
+       this.tokenSignal.set(authData.token);
+       this.currentUserSignal.set(authData.user);
+       localStorage.setItem('auth_token', authData.token);
+       localStorage.setItem('current_user', JSON.stringify(authData.user));
+   }
+
+
+   private getStoredToken(): string | null {
+       return localStorage.getItem('auth_token');
+   }
+
+
+   private getStoredUser(): User | null {
+       const stored = localStorage.getItem('current_user');
+       return stored ? JSON.parse(stored) : null;
+   }
+}
+
+
+Checkpoint 2: Your AuthService is complete with Signals-based state management.
+________________
+
+
+🟣 PART 3: Create HTTP Interceptors
+Instructor Cue: "Interceptors automatically attach JWT tokens to requests and handle authentication errors globally."
+Step 6: Create Auth Interceptor
+Create src/app/core/interceptors/auth.interceptor.ts:
+import { HttpInterceptorFn } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { AuthService } from '../services/auth.service';
+
+
+export const authInterceptor: HttpInterceptorFn = (req, next) => {
+   const authService = inject(AuthService);
+   const token = authService.currentToken();
+
+
+   if (token) {
+       const authReq = req.clone({
+           setHeaders: {
+               Authorization: `Bearer ${token}`
+           }
+       });
+       return next(authReq);
+   }
+
+
+   return next(req);
+};
+Step 7: Create Error Interceptor
+Create src/app/core/interceptors/error.interceptor.ts:
+import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { catchError, throwError } from 'rxjs';
+import { AuthService } from '../services/auth.service';
+import { Router } from '@angular/router';
+
+
+export const errorInterceptor: HttpInterceptorFn = (req, next) => {
+   const authService = inject(AuthService);
+   const router = inject(Router);
+
+
+   return next(req).pipe(
+       catchError((error: HttpErrorResponse) => {
+           if (error.status === 401) {
+               authService.logout();
+               router.navigate(['/auth/login'], {
+                   queryParams: { returnUrl: req.url }
+               });
+           }
+
+
+           if (error.status === 403) {
+               console.error('Access denied:', error.error?.error?.message);
+           }
+
+
+           return throwError(() => error);
+       })
+   );
+};
+Step 8: Register Interceptors in App Config
+Update src/app/app.config.ts:
+import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import { provideRouter } from '@angular/router';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideAnimations } from '@angular/platform-browser/animations';
+
+
+import { routes } from './app.routes';
+import { authInterceptor } from './core/interceptors/auth.interceptor';
+import { errorInterceptor } from './core/interceptors/error.interceptor';
+
+
+export const appConfig: ApplicationConfig = {
+   providers: [
+       provideZoneChangeDetection({ eventCoalescing: true }),
+       provideRouter(routes),
+       provideHttpClient(
+           withInterceptors([authInterceptor, errorInterceptor])
+       ),
+       provideAnimations(),
+   ],
+};
+
+
+Checkpoint 3: Your interceptors automatically attach tokens and handle auth errors.
+________________
+
+
+PART 4: Create Route Guards
+Instructor Cue: "Route guards protect your routes and ensure only authenticated users can access certain pages."
+Step 9: Create Auth Guard
+Create src/app/core/guards/auth.guard.ts:
+import { inject } from '@angular/core';
+import { CanActivateFn, Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
+
+
+export const authGuard: CanActivateFn = (route, state) => {
+   const authService = inject(AuthService);
+   const router = inject(Router);
+
+
+   if (authService.isLoggedIn()) {
+       return true;
+   }
+
+
+   router.navigate(['/auth/login'], {
+       queryParams: { returnUrl: state.url }
+   });
+  
+   return false;
+};
+Step 10: Create Guest Guard
+Create src/app/core/guards/guest.guard.ts:
+import { inject } from '@angular/core';
+import { CanActivateFn, Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
+
+
+export const guestGuard: CanActivateFn = (route, state) => {
+   const authService = inject(AuthService);
+   const router = inject(Router);
+
+
+   if (!authService.isLoggedIn()) {
+       return true;
+   }
+
+
+   router.navigate(['/dashboard']);
+  
+   return false;
+};
+Step 11: Configure Routes
+Update src/app/app.routes.ts:
+import { Routes } from '@angular/router';
+import { authGuard } from './core/guards/auth.guard';
+import { guestGuard } from './core/guards/guest.guard';
+
+
+export const routes: Routes = [
+   {
+       path: 'auth',
+       canActivate: [guestGuard],
+       children: [
+           {
+               path: 'login',
+               loadComponent: () =>
+                   import('./features/auth/login/login.component')
+                   .then(m => m.LoginComponent)
+           },
+           {
+               path: 'register',
+               loadComponent: () =>
+                   import('./features/auth/register/register.component')
+                   .then(m => m.RegisterComponent)
+           },
+           {
+               path: 'forgot-password',
+               loadComponent: () =>
+                   import('./features/auth/forgot-password/forgot-password.component')
+                   .then(m => m.ForgotPasswordComponent)
+           },
+           {
+               path: 'reset-password',
+               loadComponent: () =>
+                   import('./features/auth/reset-password/reset-password.component')
+                   .then(m => m.ResetPasswordComponent)
+           },
+       ]
+   },
+   {
+       path: 'verify-email',
+       loadComponent: () =>
+           import('./features/auth/verify-email/verify-email.component')
+           .then(m => m.VerifyEmailComponent)
+   },
+   {
+       path: 'dashboard',
+       canActivate: [authGuard],
+       loadComponent: () =>
+           import('./features/dashboard/dashboard.component')
+           .then(m => m.DashboardComponent)
+   },
+   {
+       path: '',
+       redirectTo: '/dashboard',
+       pathMatch: 'full'
+   },
+   {
+       path: '**',
+       redirectTo: '/dashboard'
+   }
+];
+
+
+Checkpoint 4: Your routes are protected with guards and lazy-loaded.
+________________
+
+
+PART 5: Build Login Component
+Instructor Cue: "Let's build the login component using Reactive Forms and the new built-in control flow syntax."
+Step 12: Create Login Component
+Create src/app/features/auth/login/login.component.ts:
+
+
+import { Component, inject, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
+
+
+@Component({
+   selector: 'app-login',
+   standalone: true,
+   imports: [CommonModule, ReactiveFormsModule, RouterLink],
+   templateUrl: './login.component.html',
+   styleUrl: './login.component.css'
+})
+export class LoginComponent implements OnInit {
+   private fb = inject(FormBuilder);
+   private authService = inject(AuthService);
+   private router = inject(Router);
+   private route = inject(ActivatedRoute);
+
+
+   private returnUrl = '/dashboard';
+
+
+   loginForm = this.fb.group({
+       email: ['', [Validators.required, Validators.email]],
+       password: ['', [Validators.required, Validators.minLength(8)]]
+   });
+
+
+   isLoading = this.authService.isLoading;
+   error = this.authService.error;
+
+
+   ngOnInit(): void {
+       this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
+   }
+
+
+   onSubmit(): void {
+       if (this.loginForm.invalid) {
+           this.loginForm.markAllAsTouched();
+           return;
+       }
+
+
+       const { email, password } = this.loginForm.value;
+      
+       this.authService.login({ email!, password! }).subscribe({
+           next: () => {
+               this.router.navigateByUrl(this.returnUrl);
+           },
+           error: (error) => {
+               console.error('Login failed:', error);
+           }
+       });
+   }
+
+
+   get f() {
+       return this.loginForm.controls;
+   }
+}
+
+
+Create src/app/features/auth/login/login.component.html:
+<div class="auth-container">
+   <div class="auth-card">
+       <h1>Welcome Back</h1>
+       <p class="subtitle">Sign in to your account</p>
+
+
+       @if (error()) {
+           <div class="alert alert-error">
+               {{ error() }}
+           </div>
+       }
+
+
+       <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+           <div class="form-group">
+               <label for="email">Email</label>
+               <input
+                   type="email"
+                   id="email"
+                   formControlName="email"
+                   placeholder="you@example.com"
+                   [class.error]="f.email.touched && f.email.invalid"
+               >
+               @if (f.email.touched && f.email.invalid) {
+                   <small class="error-message">
+                       @if (f.email.errors?.['required']) {
+                           Email is required
+                       }
+                       @if (f.email.errors?.['email']) {
+                           Please enter a valid email
+                       }
+                   </small>
+               }
+           </div>
+
+
+           <div class="form-group">
+               <label for="password">Password</label>
+               <input
+                   type="password"
+                   id="password"
+                   formControlName="password"
+                   placeholder="••••••••"
+                   [class.error]="f.password.touched && f.password.invalid"
+               >
+               @if (f.password.touched && f.password.invalid) {
+                   <small class="error-message">
+                       @if (f.password.errors?.['required']) {
+                           Password is required
+                       }
+                       @if (f.password.errors?.['minlength']) {
+                           Password must be at least 8 characters
+                       }
+                   </small>
+               }
+           </div>
+
+
+           <div class="form-actions">
+               <a routerLink="/auth/forgot-password" class="link">
+                   Forgot password?
+               </a>
+           </div>
+
+
+           <button
+               type="submit"
+               class="btn btn-primary"
+               [disabled]="isLoading()"
+           >
+               @if (isLoading()) {
+                   Signing in...
+               } @else {
+                   Sign In
+               }
+           </button>
+       </form>
+
+
+       <p class="auth-footer">
+           Don't have an account?
+           <a routerLink="/auth/register" class="link">Sign up</a>
+       </p>
+   </div>
+</div>
+
+
+Create src/app/features/auth/login/login.component.css: (Leave empty for now, we'll add global styles later)
+
+
+Checkpoint 5: Your login component is complete with form validation and error handling.
+________________
+
+
+🟡 PART 6: Build Register Component
+Step 13: Create Register Component
+Create src/app/features/auth/register/register.component.ts:
+
+
+import { Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
+
+
+@Component({
+   selector: 'app-register',
+   standalone: true,
+   imports: [CommonModule, ReactiveFormsModule, RouterLink],
+   templateUrl: './register.component.html',
+   styleUrl: './register.component.css'
+})
+export class RegisterComponent {
+   private fb = inject(FormBuilder);
+   private authService = inject(AuthService);
+   private router = inject(Router);
+
+
+   successMessage: string | null = null;
+
+
+   registerForm = this.fb.group({
+       name: ['', [Validators.required, Validators.minLength(2)]],
+       email: ['', [Validators.required, Validators.email]],
+       password: ['', [
+           Validators.required,
+           Validators.minLength(8),
+           Validators.pattern(/^(?=.*[A-Za-z])(?=.*\d)/)
+       ]],
+       confirmPassword: ['', Validators.required],
+       age: [null, [Validators.min(13), Validators.max(120)]]
+   });
+
+
+   isLoading = this.authService.isLoading;
+   error = this.authService.error;
+
+
+   onSubmit(): void {
+       if (this.registerForm.invalid) {
+           this.registerForm.markAllAsTouched();
+           return;
+       }
+
+
+       const { name, email, password, confirmPassword, age } = this.registerForm.value;
+
+
+       if (password !== confirmPassword) {
+           this.authService['errorSignal'].set('Passwords do not match');
+           return;
+       }
+
+
+       this.authService.register({ name!, email!, password!, age: age || undefined })
+           .subscribe({
+               next: (response) => {
+                   this.successMessage = response.message;
+                   this.registerForm.reset();
+               },
+               error: (error) => {
+                   console.error('Registration failed:', error);
+               }
+           });
+   }
+
+
+   get f() {
+       return this.registerForm.controls;
+   }
+}
+
+
+Create src/app/features/auth/register/register.component.html:
+<div class="auth-container">
+   <div class="auth-card">
+       <h1>Create Account</h1>
+       <p class="subtitle">Join us today</p>
+
+
+       @if (successMessage) {
+           <div class="alert alert-success">
+               <strong>✓ Success!</strong> {{ successMessage }}
+               <br><br>
+               <a routerLink="/auth/login" class="link">Go to login</a>
+           </div>
+       }
+
+
+       @if (error() && !successMessage) {
+           <div class="alert alert-error">
+               {{ error() }}
+           </div>
+       }
+
+
+       @if (!successMessage) {
+           <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+               <div class="form-group">
+                   <label for="name">Full Name</label>
+                   <input
+                       type="text"
+                       id="name"
+                       formControlName="name"
+                       placeholder="John Doe"
+                   >
+                   @if (f.name.touched && f.name.invalid) {
+                       <small class="error-message">Name is required</small>
+                   }
+               </div>
+
+
+               <div class="form-group">
+                   <label for="email">Email</label>
+                   <input
+                       type="email"
+                       id="email"
+                       formControlName="email"
+                       placeholder="you@example.com"
+                   >
+                   @if (f.email.touched && f.email.invalid) {
+                       <small class="error-message">Valid email required</small>
+                   }
+               </div>
+
+
+               <div class="form-group">
+                   <label for="password">Password</label>
+                   <input
+                       type="password"
+                       id="password"
+                       formControlName="password"
+                       placeholder="••••••••"
+                   >
+                   @if (f.password.touched && f.password.invalid) {
+                       <small class="error-message">
+                           Min 8 chars, 1 letter, 1 number
+                       </small>
+                   }
+               </div>
+
+
+               <div class="form-group">
+                   <label for="confirmPassword">Confirm Password</label>
+                   <input
+                       type="password"
+                       id="confirmPassword"
+                       formControlName="confirmPassword"
+                       placeholder="••••••••"
+                   >
+               </div>
+
+
+               <button
+                   type="submit"
+                   class="btn btn-primary"
+                   [disabled]="isLoading()"
+               >
+                   @if (isLoading()) {
+                       Creating account...
+                   } @else {
+                       Create Account
+                   }
+               </button>
+           </form>
+       }
+
+
+       <p class="auth-footer">
+           Already have an account?
+           <a routerLink="/auth/login" class="link">Sign in</a>
+       </p>
+   </div>
+</div>
+
+
+Checkpoint 6: Your register component is complete with password confirmation validation.
+________________
+
+
+🟤 PART 7: Build Verify Email, Forgot Password, and Reset Password Components
+Step 14: Create Verify Email Component
+Create src/app/features/auth/verify-email/verify-email.component.ts:
+import { Component, inject, OnInit, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
+
+
+@Component({
+   selector: 'app-verify-email',
+   standalone: true,
+   imports: [CommonModule, RouterLink],
+   templateUrl: './verify-email.component.html'
+})
+export class VerifyEmailComponent implements OnInit {
+   private route = inject(ActivatedRoute);
+   private authService = inject(AuthService);
+
+
+   status = signal<'loading' | 'success' | 'error'>('loading');
+   message = signal<string>('');
+
+
+   ngOnInit(): void {
+       const token = this.route.snapshot.queryParams['token'];
+
+
+       if (!token) {
+           this.status.set('error');
+           this.message.set('Invalid verification link');
+           return;
+       }
+
+
+       this.authService.verifyEmail(token).subscribe({
+           next: (response) => {
+               this.status.set('success');
+               this.message.set(response.message);
+           },
+           error: (error) => {
+               this.status.set('error');
+               this.message.set(
+                   error.error?.error?.message || 'Verification failed'
+               );
+           }
+       });
+   }
+}
+
+
+Create src/app/features/auth/verify-email/verify-email.component.html:
+<div class="auth-container">
+   <div class="auth-card">
+       @switch (status()) {
+           @case ('loading') {
+               <div class="loading-state">
+                   <div class="spinner"></div>
+                   <h2>Verifying your email...</h2>
+               </div>
+           }
+           @case ('success') {
+               <div class="success-state">
+                   <div class="icon success-icon">✓</div>
+                   <h2>Email Verified!</h2>
+                   <p>{{ message() }}</p>
+                   <a routerLink="/auth/login" class="btn btn-primary">
+                       Go to Login
+                   </a>
+               </div>
+           }
+           @case ('error') {
+               <div class="error-state">
+                   <div class="icon error-icon">✗</div>
+                   <h2>Verification Failed</h2>
+                   <p>{{ message() }}</p>
+                   <a routerLink="/auth/login" class="btn btn-secondary">
+                       Back to Login
+                   </a>
+               </div>
+           }
+       }
+   </div>
+</div>
+Step 15: Create Forgot Password Component
+Create src/app/features/auth/forgot-password/forgot-password.component.ts:
+
+
+import { Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
+
+
+@Component({
+   selector: 'app-forgot-password',
+   standalone: true,
+   imports: [CommonModule, ReactiveFormsModule, RouterLink],
+   templateUrl: './forgot-password.component.html'
+})
+export class ForgotPasswordComponent {
+   private fb = inject(FormBuilder);
+   private authService = inject(AuthService);
+
+
+   successMessage: string | null = null;
+
+
+   forgotForm = this.fb.group({
+       email: ['', [Validators.required, Validators.email]]
+   });
+
+
+   isLoading = this.authService.isLoading;
+   error = this.authService.error;
+
+
+   onSubmit(): void {
+       if (this.forgotForm.invalid) {
+           this.forgotForm.markAllAsTouched();
+           return;
+       }
+
+
+       const { email } = this.forgotForm.value;
+
+
+       this.authService.forgotPassword(email!).subscribe({
+           next: (response) => {
+               this.successMessage = response.message;
+           },
+           error: (error) => {
+               console.error('Forgot password failed:', error);
+           }
+       });
+   }
+
+
+   get f() {
+       return this.forgotForm.controls;
+   }
+}
+
+
+Create src/app/features/auth/forgot-password/forgot-password.component.html:
+
+
+<div class="auth-container">
+   <div class="auth-card">
+       <h1>Forgot Password</h1>
+       <p class="subtitle">Enter your email to receive a reset link</p>
+
+
+       @if (successMessage) {
+           <div class="alert alert-success">
+               <strong>✓ Success!</strong> {{ successMessage }}
+           </div>
+       }
+
+
+       @if (error() && !successMessage) {
+           <div class="alert alert-error">
+               {{ error() }}
+           </div>
+       }
+
+
+       @if (!successMessage) {
+           <form [formGroup]="forgotForm" (ngSubmit)="onSubmit()">
+               <div class="form-group">
+                   <label for="email">Email</label>
+                   <input
+                       type="email"
+                       id="email"
+                       formControlName="email"
+                       placeholder="you@example.com"
+                   >
+                   @if (f.email.touched && f.email.invalid) {
+                       <small class="error-message">Valid email required</small>
+                   }
+               </div>
+
+
+               <button
+                   type="submit"
+                   class="btn btn-primary"
+                   [disabled]="isLoading()"
+               >
+                   @if (isLoading()) {
+                       Sending...
+                   } @else {
+                       Send Reset Link
+                   }
+               </button>
+           </form>
+       }
+
+
+       <p class="auth-footer">
+           Remember your password?
+           <a routerLink="/auth/login" class="link">Sign in</a>
+       </p>
+   </div>
+</div>
+Step 16: Create Reset Password Component
+Create src/app/features/auth/reset-password/reset-password.component.ts:
+
+
+import { Component, inject, OnInit, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
+
+
+@Component({
+   selector: 'app-reset-password',
+   standalone: true,
+   imports: [CommonModule, ReactiveFormsModule, RouterLink],
+   templateUrl: './reset-password.component.html'
+})
+export class ResetPasswordComponent implements OnInit {
+   private fb = inject(FormBuilder);
+   private authService = inject(AuthService);
+   private route = inject(ActivatedRoute);
+
+
+   private token = '';
+   successMessage: string | null = null;
+   status = signal<'form' | 'success' | 'error'>('form');
+   errorMessage = signal<string>('');
+
+
+   resetForm = this.fb.group({
+       newPassword: ['', [
+           Validators.required,
+           Validators.minLength(8),
+           Validators.pattern(/^(?=.*[A-Za-z])(?=.*\d)/)
+       ]],
+       confirmPassword: ['', Validators.required]
+   });
+
+
+   isLoading = this.authService.isLoading;
+   error = this.authService.error;
+
+
+   ngOnInit(): void {
+       this.token = this.route.snapshot.queryParams['token'] || '';
+      
+       if (!this.token) {
+           this.status.set('error');
+           this.errorMessage.set('Invalid reset link');
+       }
+   }
+
+
+   onSubmit(): void {
+       if (this.resetForm.invalid) {
+           this.resetForm.markAllAsTouched();
+           return;
+       }
+
+
+       const { newPassword, confirmPassword } = this.resetForm.value;
+
+
+       if (newPassword !== confirmPassword) {
+           this.authService['errorSignal'].set('Passwords do not match');
+           return;
+       }
+
+
+       this.authService.resetPassword(this.token, newPassword!).subscribe({
+           next: (response) => {
+               this.successMessage = response.message;
+               this.status.set('success');
+           },
+           error: (error) => {
+               this.status.set('error');
+               this.errorMessage.set(
+                   error.error?.error?.message || 'Reset failed'
+               );
+           }
+       });
+   }
+
+
+   get f() {
+       return this.resetForm.controls;
+   }
+}
+
+
+Create src/app/features/auth/reset-password/reset-password.component.html:
+
+
+<div class="auth-container">
+   <div class="auth-card">
+       @switch (status()) {
+           @case ('form') {
+               <h1>Reset Password</h1>
+               <p class="subtitle">Enter your new password</p>
+
+
+               @if (error() && !successMessage) {
+                   <div class="alert alert-error">
+                       {{ error() }}
+                   </div>
+               }
+
+
+               <form [formGroup]="resetForm" (ngSubmit)="onSubmit()">
+                   <div class="form-group">
+                       <label for="newPassword">New Password</label>
+                       <input
+                           type="password"
+                           id="newPassword"
+                           formControlName="newPassword"
+                           placeholder="••••••••"
+                       >
+                       @if (f.newPassword.touched && f.newPassword.invalid) {
+                           <small class="error-message">
+                               Min 8 chars, 1 letter, 1 number
+                           </small>
+                       }
+                   </div>
+
+
+                   <div class="form-group">
+                       <label for="confirmPassword">Confirm Password</label>
+                       <input
+                           type="password"
+                           id="confirmPassword"
+                           formControlName="confirmPassword"
+                           placeholder="••••••••"
+                       >
+                   </div>
+
+
+                   <button
+                       type="submit"
+                       class="btn btn-primary"
+                       [disabled]="isLoading()"
+                   >
+                       @if (isLoading()) {
+                           Resetting...
+                       } @else {
+                           Reset Password
+                       }
+                   </button>
+               </form>
+           }
+           @case ('success') {
+               <div class="success-state">
+                   <div class="icon success-icon">✓</div>
+                   <h2>Password Reset!</h2>
+                   <p>{{ successMessage }}</p>
+                   <a routerLink="/auth/login" class="btn btn-primary">
+                       Go to Login
+                   </a>
+               </div>
+           }
+           @case ('error') {
+               <div class="error-state">
+                   <div class="icon error-icon">✗</div>
+                   <h2>Reset Failed</h2>
+                   <p>{{ errorMessage() }}</p>
+                   <a routerLink="/auth/forgot-password" class="btn btn-secondary">
+                       Try Again
+                   </a>
+               </div>
+           }
+       }
+   </div>
+</div>
+
+
+Checkpoint 7: All auth components are complete!
+________________
+
+
+PART 8: Build Dashboard Component
+Step 17: Create Dashboard Component
+Create src/app/features/dashboard/dashboard.component.ts:
+
+
+import { Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
+import { AuthService } from '../../core/services/auth.service';
+
+
+@Component({
+   selector: 'app-dashboard',
+   standalone: true,
+   imports: [CommonModule, RouterLink],
+   templateUrl: './dashboard.component.html'
+})
+export class DashboardComponent {
+   private authService = inject(AuthService);
+
+
+   currentUser = this.authService.currentUser;
+   isLoggedIn = this.authService.isLoggedIn;
+
+
+   logout(): void {
+       this.authService.logout();
+   }
+}
+
+
+Create src/app/features/dashboard/dashboard.component.html:
+
+
+<div class="dashboard">
+   <header class="dashboard-header">
+       <h1>Dashboard</h1>
+      
+       @if (currentUser(); as user) {
+           <div class="user-info">
+               <span>Welcome, {{ user.name }}!</span>
+               <button (click)="logout()" class="btn btn-secondary">
+                   Logout
+               </button>
+           </div>
+       }
+   </header>
+
+
+   <main class="dashboard-content">
+       <div class="welcome-card">
+           <h2>Welcome to Your Dashboard</h2>
+           @if (currentUser(); as user) {
+               <p>You are logged in as <strong>{{ user.email }}</strong></p>
+               <p>Account created: {{ user.createdAt | date:'medium' }}</p>
+           }
+       </div>
+
+
+       <div class="info-card">
+           <h3>Your Authentication Status</h3>
+           <ul>
+               <li>✓ JWT Token stored securely</li>
+               <li>✓ Email verified</li>
+               <li>✓ Protected routes working</li>
+               <li>✓ Automatic token attachment</li>
+           </ul>
+       </div>
+   </main>
+</div>
+
+
+Checkpoint 8: Your dashboard displays user data and provides logout functionality.
+________________
+
+
+🟢 PART 9: Add Global Styles
+Step 18: Update Global Styles
+Replace src/styles.css with:
+
+
+* {
+   box-sizing: border-box;
+   margin: 0;
+   padding: 0;
+}
+
+
+body {
+   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+   line-height: 1.6;
+   color: #333;
+   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+   min-height: 100vh;
+}
+
+
+.auth-container {
+   display: flex;
+   justify-content: center;
+   align-items: center;
+   min-height: 100vh;
+   padding: 20px;
+}
+
+
+.auth-card {
+   background: white;
+   border-radius: 12px;
+   padding: 40px;
+   width: 100%;
+   max-width: 450px;
+   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+
+.auth-card h1 {
+   font-size: 28px;
+   margin-bottom: 8px;
+   color: #2d3748;
+}
+
+
+.subtitle {
+   color: #718096;
+   margin-bottom: 32px;
+}
+
+
+.form-group {
+   margin-bottom: 20px;
+}
+
+
+.form-group label {
+   display: block;
+   margin-bottom: 6px;
+   font-weight: 500;
+   color: #2d3748;
+}
+
+
+.form-group input {
+   width: 100%;
+   padding: 12px;
+   border: 2px solid #e2e8f0;
+   border-radius: 8px;
+   font-size: 14px;
+   transition: border-color 0.2s;
+}
+
+
+.form-group input:focus {
+   outline: none;
+   border-color: #667eea;
+}
+
+
+.form-group input.error {
+   border-color: #e53e3e;
+}
+
+
+.error-message {
+   color: #e53e3e;
+   font-size: 12px;
+   margin-top: 4px;
+   display: block;
+}
+
+
+.btn {
+   padding: 12px 24px;
+   border: none;
+   border-radius: 8px;
+   font-size: 14px;
+   font-weight: 600;
+   cursor: pointer;
+   transition: all 0.2s;
+   width: 100%;
+}
+
+
+.btn-primary {
+   background: #667eea;
+   color: white;
+}
+
+
+.btn-primary:hover:not(:disabled) {
+   background: #5568d3;
+}
+
+
+.btn-primary:disabled {
+   opacity: 0.6;
+   cursor: not-allowed;
+}
+
+
+.btn-secondary {
+   background: #e2e8f0;
+   color: #2d3748;
+}
+
+
+.btn-secondary:hover {
+   background: #cbd5e0;
+}
+
+
+.alert {
+   padding: 12px 16px;
+   border-radius: 8px;
+   margin-bottom: 20px;
+}
+
+
+.alert-error {
+   background: #fed7d7;
+   color: #c53030;
+   border-left: 4px solid #e53e3e;
+}
+
+
+.alert-success {
+   background: #c6f6d5;
+   color: #22543d;
+   border-left: 4px solid #38a169;
+}
+
+
+.link {
+   color: #667eea;
+   text-decoration: none;
+   font-weight: 500;
+}
+
+
+.link:hover {
+   text-decoration: underline;
+}
+
+
+.form-actions {
+   text-align: right;
+   margin-bottom: 20px;
+}
+
+
+.auth-footer {
+   text-align: center;
+   margin-top: 24px;
+   color: #718096;
+}
+
+
+.dashboard {
+   min-height: 100vh;
+   background: #f7fafc;
+}
+
+
+.dashboard-header {
+   background: white;
+   padding: 20px 40px;
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+
+.dashboard-header h1 {
+   font-size: 24px;
+   color: #2d3748;
+}
+
+
+.user-info {
+   display: flex;
+   align-items: center;
+   gap: 16px;
+}
+
+
+.user-info .btn {
+   width: auto;
+}
+
+
+.dashboard-content {
+   max-width: 1200px;
+   margin: 40px auto;
+   padding: 0 20px;
+}
+
+
+.welcome-card, .info-card {
+   background: white;
+   padding: 32px;
+   border-radius: 12px;
+   margin-bottom: 24px;
+   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+
+.welcome-card h2 {
+   margin-bottom: 16px;
+   color: #2d3748;
+}
+
+
+.info-card h3 {
+   margin-bottom: 16px;
+   color: #2d3748;
+}
+
+
+.info-card ul {
+   list-style: none;
+}
+
+
+.info-card li {
+   padding: 8px 0;
+   color: #4a5568;
+}
+
+
+.spinner {
+   width: 40px;
+   height: 40px;
+   border: 4px solid #e2e8f0;
+   border-top-color: #667eea;
+   border-radius: 50%;
+   animation: spin 1s linear infinite;
+   margin: 0 auto 20px;
+}
+
+
+@keyframes spin {
+   to { transform: rotate(360deg); }
+}
+
+
+.loading-state, .success-state, .error-state {
+   text-align: center;
+   padding: 40px 20px;
+}
+
+
+.icon {
+   width: 80px;
+   height: 80px;
+   border-radius: 50%;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-size: 40px;
+   margin: 0 auto 20px;
+}
+
+
+.success-icon {
+   background: #c6f6d5;
+   color: #22543d;
+}
+
+
+.error-icon {
+   background: #fed7d7;
+   color: #c53030;
+}
+
+
+Checkpoint 9: Your application has professional styling!
+________________
+
+
+🔵 PART 10: Test the Complete Flow
+Step 19: Start Both Servers
+
+
+Terminal 1 - Backend:
+cd professional-boilerplate
+npm run dev
+
+
+Terminal 2 - Frontend:
+cd auth-frontend
+ng serve
+Step 20: Test Registration Flow
+1. Open http://localhost:4200/auth/register
+2. Fill out the registration form
+3. Submit → Success message appears
+4. Check backend terminal for Ethereal preview URL
+5. Click the verification link
+6. Email verified → Go to login
+7. Login with credentials → Redirected to dashboard ✓
+Step 21: Test Forgot Password Flow
+1. Click "Forgot password?" on login page
+2. Enter email → Success message
+3. Check Ethereal for reset email
+4. Click reset link → Reset password form
+5. Enter new password → Success
+6. Login with new password → Works! ✓
+Step 22: Test Protected Routes
+1. Logout from dashboard
+2. Try to access http://localhost:4200/dashboard directly
+3. Redirected to login ✓
+4. Login → Redirected back to dashboard ✓
+Checkpoint 10: All flows work end-to-end!
+________________
+
+
+📥 Submission Instructions
+1. Verify all flows work:
+   * ✅ Registration sends verification email
+   * ✅ Email verification works
+   * ✅ Login works after verification
+   * ✅ Forgot password sends reset email
+   * ✅ Password reset works
+   * ✅ Protected routes redirect to login
+   * ✅ Dashboard shows user data
+2. Create a professional README.md with:
+   * Project description
+   * Features list
+   * Setup instructions
+   * Screenshots of each page
+   * Your reflection answers
+3. Commit and push to GitHub:
+git add .
+git commit -m "feat: complete angular 21 auth frontend with modern features"
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/auth-frontend.git
+4. git push -u origin main
+5. Submit the GitHub URL via your LMS.
+________________
+
+
+📊 Grading Rubric
+Criteria
+	Excellent (20)
+	Good (16)
+	Satisfactory (12)
+	Needs Work (8)
+	Project Setup
+	Angular 21 with standalone components, proper folder structure, environment configs
+	Most setup correct
+	Basic setup only
+	Setup issues
+	Auth Service
+	Complete with Signals, all methods implemented, type-safe interfaces
+	Most functionality
+	Basic service only
+	Incomplete
+	Interceptors
+	Auth and error interceptors working, automatic token attachment
+	Most interceptor features
+	Basic interceptors
+	Interceptors broken
+	Route Guards
+	Auth and guest guards working, lazy loading implemented
+	Most guards working
+	Basic guards only
+	No guards
+	Auth Components
+	All 5 components (login, register, verify, forgot, reset) with Reactive Forms
+	Most components
+	Some components
+	Missing components
+	Dashboard
+	Displays user data, logout works, protected route
+	Basic dashboard
+	Minimal dashboard
+	No dashboard
+	Styling
+	Professional, responsive, consistent design
+	Good styling
+	Basic styling
+	Poor styling
+	Integration
+	All flows work end-to-end with backend
+	Most flows work
+	Some flows work
+	Integration broken
+	Code Quality
+	Clean TypeScript, no any, proper use of modern Angular features
+	Good quality
+	Somewhat disorganized
+	Poorly organized
+	Documentation
+	Professional README with screenshots, setup instructions, reflection
+	Good README
+	Minimal README
+	No README
+	Total Points: ___/200
+________________
+
+
+🚨 Troubleshooting & Common Errors
+Error
+	Cause
+	Solution
+	Cannot find module 'environment'
+	Environment files missing
+	Create src/environments/environment.ts
+	No provider for HttpClient
+	HttpClient not provided
+	Add provideHttpClient() in app.config.ts
+	401 Unauthorized on all requests
+	Token not being sent
+	Check auth interceptor is registered
+	CORS error in browser console
+	Backend CORS not configured
+	Check backend has CORS middleware
+	Cannot bind to 'formGroup'
+	ReactiveFormsModule not imported
+	Add ReactiveFormsModule to component imports
+	Signals not updating in template
+	Not calling signal as function
+	Use signal() not signal in templates
+	@if or @for not working
+	Old Angular version
+	Ensure Angular 17+ for built-in control flow
+	Redirect loop with guards
+	Guard logic incorrect
+	Check auth guard condition
+	Token not persisting after refresh
+	Not using localStorage
+	Store token in localStorage in AuthService
+	Styles not applying
+	Global styles not loaded
+	Check angular.json includes styles.css
+	________________
+
+
+💡 Reflection Questions (Include in README.md)
+1. What are the three main modern Angular features you used in this project? How do they improve the developer experience?
+2. Explain the difference between Signals and RxJS. When would you use each?
+3. Why is it important to have both an auth interceptor and an error interceptor?
+4. How do route guards improve security and user experience?
+5. What is lazy loading and why is it important for performance?
+6. Explain the "single source of truth" principle in the context of your AuthService.
+7. What challenges did you face when connecting the Angular frontend to the Node.js backend? How did you solve them?
+8. If you had to add a new feature (e.g., user profile editing), how would you approach it using the patterns you learned?
+9. What security considerations did you implement in the frontend (token storage, XSS prevention, etc.)?
+10. How does this Angular frontend demonstrate the "Integrative Programming" concepts from this course?
+________________
+
+
+🎯 Looking Ahead: Final Deployment
+You've now built a complete, modern Angular 21 frontend with:
+* ✅ Standalone Components
+* ✅ Signals for reactive state
+* ✅ Built-in Control Flow
+* ✅ HTTP Interceptors
+* ✅ Route Guards
+* ✅ Complete authentication flows
+* ✅ Professional styling
+In the final module, you'll deploy this entire full-stack application to the cloud, making it accessible from anywhere in the world.
+________________
+
+
+🏆 Bonus Challenge (Optional)
+If you finish early:
+1. Add Dark Mode: Implement a theme toggle with CSS variables
+2. Add Loading Skeletons: Show skeleton screens while data loads
+3. Add Toast Notifications: Show success/error messages as toasts
+4. Add Form Auto-Save: Save form drafts to localStorage
+5. Add Two-Factor Authentication UI: Add 2FA setup and verification pages
+6. Add User Profile Page: Allow users to edit their profile
+7. Add Responsive Navigation: Add a mobile-friendly navbar
+PART 1: Project Setup
+Instructor Cue: "Let's create our Angular 21 frontend. This will be a modern, standalone-component-based application that connects to your backend."
+Step 1: Create Angular Project
+Open your terminal and run:
+
+
+# Create new Angular project with modern defaults
+ng new auth-frontend --standalone --routing --style=css --ssr=false
+
+
+  
+
+
+
+If you see this error it means the Angular CLI isn't installed on your machine (or isn't on your PATH). 
+Fix it:
+1. Check that Node.js is installed:
+powershell
+node -v
+npm -v
+2. Install the Angular CLI globally:
+powershell
+npm install -g @angular/cli
+3. Close and reopen PowerShell, then verify:
+powershell
+ng version
+4. Run your command again:
+powershell
+ng new auth-frontend --standalone --routing --style=css --ssr=false
+
+PART 5: Build Login Component
+Instructor Cue: "Let's build the login component using Reactive Forms and the new built-in control flow syntax."
+Step 12: Create Login Component
+Create src/app/features/auth/login/login.component.ts:
+
+
+  
+
+PART 6: Build Register Component
+Step 13: Create Register Component
+Create src/app/features/auth/register/register.component.ts:
+
+
+
+
+  
+
+
+
+
+
+Either works fine 
+
+
+Option fix 1. 
+
+
+You can write ! on the values, as long as you write full key-value pairs instead of shorthand: 
+
+
+this.authService.login({ email: email!, password: password! })
+
+
+  
+
+
+
+Option fix 2.
+
+
+Using email ?? '' is even safer than email! because if a control ever had a null or undefined value at runtime, ?? '' falls back to an empty string instead of passing null/undefined through 
+
+
+this.authService.login({ email: email ?? '', password: password ?? '' }) 
+
+
+  
+
+
+
+  
+
+
+
+
+
+PART 10: Test the Complete Flow
+
+
+Starting the server for frontend 
+
+
+If you happen to encounter this error 
+
+
+  
+
+
+
+
+
+Fix
+
+
+  
+log
+
+
+  
+
+
+
+We removed the RouterLink since it is not used in dashboard.component.html. 
+
+
+If you later add navigation links (like a link to a profile or settings page) inside dashboard.component.html, you can simply import RouterLink from @angular/router and add it back to imports in dashboard.component.ts 
+
+
+
+
+This error also:
+
+
+
+
+  
+
+
+
+provideAnimations() in app.config.ts tries to load @angular/animations/browser, which isn't installed in auth-frontend. That throws a fatal startup error in the browser before Angular can render <app-root> and <router-outlet />, leaving only body's purple background from styles.css. 
+
+
+Option fix 1. 
+
+
+Install @angular/animations (best if your components use Angular animations): 
+
+
+npm install @angular/animations 
+
+
+
+
+Option fix 2. 
+
+
+Remove provideAnimations() from app.config.ts (quickest if you aren't using Angular animation triggers): src/app/app.config.ts
+
+
+Remove import { provideAnimations } from '@angular/platform-browser/animations'; and remove provideAnimations().
+
+
+  
+
+
+
+  
+
+
+
+
+
+Another error: 
+
+
+  
+
+This happens because appConfig uses provideZoneChangeDetection(...), which expects zone.js to be loaded before Angular bootstraps, but zone.js isn't currently imported in main.ts (or included in polyfills). 
+
+
+Fix. 
+
+
+src/main.ts 
+add import 'zone.js'; at the very top (before @angular/platform-browser and appConfig): 
+
+
+  
+
+
+
+Make sure zone.js is installed (npm install zone.js if needed, though it's usually already in node_modules). 
+
+
+npm install zone.js 
+
+
+
+
+
+
+  
+
+
+
+
+
+For testing: 
+Step 21: Test Forgot Password Flow
+
+
+If you click the reset password button from Ethereal, and it will not redirect to the reset password form page. 
+
+
+Update the app.routes.ts with this code. 
+
+
+import { Routes } from '@angular/router';
+import { authGuard } from './core/guards/auth.guard';
+import { guestGuard } from './core/guards/guest.guard';
+
+
+export const routes: Routes = [
+   {
+       path: 'auth',
+       canActivate: [guestGuard],
+       children: [
+           {
+               path: 'login',
+               loadComponent: () =>
+                   import('./features/auth/login/login.component')
+                   .then(m => m.LoginComponent)
+           },
+           {
+               path: 'register',
+               loadComponent: () =>
+                   import('./features/auth/register/register.component')
+                   .then(m => m.RegisterComponent)
+           },
+           {
+               path: 'forgot-password',
+               loadComponent: () =>
+                   import('./features/auth/forgot-password/forgot-password.component')
+                   .then(m => m.ForgotPasswordComponent)
+           },
+       ]
+   },
+   {
+       path: 'reset-password',
+       canActivate: [guestGuard],
+       loadComponent: () =>
+           import('./features/auth/reset-password/reset-password.component')
+           .then(m => m.ResetPasswordComponent)
+   },
+   {
+       path: 'verify-email',
+       loadComponent: () =>
+           import('./features/auth/verify-email/verify-email.component')
+           .then(m => m.VerifyEmailComponent)
+   },
+   {
+       path: 'dashboard',
+       canActivate: [authGuard],
+       loadComponent: () =>
+           import('./features/dashboard/dashboard.component')
+           .then(m => m.DashboardComponent)
+   },
+   {
+       path: '',
+       redirectTo: '/dashboard',
+       pathMatch: 'full'
+   },
+   {
+       path: '**',
+       redirectTo: '/dashboard'
+   }
+];

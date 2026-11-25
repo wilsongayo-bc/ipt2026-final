@@ -1,0 +1,85 @@
+<div class="auth-container">
+  <div class="auth-card">
+    <h1>Welcome Back</h1>
+    <p class="subtitle">Sign in to your account</p>
+
+    @if (error()) {
+      <div class="alert alert-error">
+        {{ error() }}
+        @if (unverifiedPreviewUrl()) {
+          <div class="email-preview">
+            <span class="email-preview-label">Email Verification Preview</span>
+            <button
+              type="button"
+              (click)="openVerifyPreview()"
+              class="btn btn-secondary email-preview-btn"
+            >
+              Verify Email Now
+            </button>
+          </div>
+        }
+      </div>
+    }
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input
+          type="email"
+          id="email"
+          formControlName="email"
+          placeholder="you@example.com"
+          [class.error]="f.email.touched && f.email.invalid"
+        />
+        @if (f.email.touched && f.email.invalid) {
+          <small class="error-message">
+            @if (f.email.errors?.['required']) {
+              Email is required
+            }
+            @if (f.email.errors?.['email']) {
+              Please enter a valid email
+            }
+          </small>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input
+          type="password"
+          id="password"
+          formControlName="password"
+          placeholder="••••••••"
+          [class.error]="f.password.touched && f.password.invalid"
+        />
+        @if (f.password.touched && f.password.invalid) {
+          <small class="error-message">
+            @if (f.password.errors?.['required']) {
+              Password is required
+            }
+            @if (f.password.errors?.['minlength']) {
+              Password must be at least 8 characters
+            }
+          </small>
+        }
+      </div>
+
+      <div class="form-actions">
+        <a routerLink="/auth/forgot-password" class="link">Forgot password?</a>
+      </div>
+
+      <button type="submit" class="btn btn-primary" [disabled]="isLoading()">
+        @if (isLoading()) {
+          Signing in...
+        } @else {
+          Sign In
+        }
+      </button>
+    </form>
+
+    <p class="auth-footer">
+      Don't have an account?
+      <a routerLink="/auth/register" class="link">Sign up</a>
+    </p>
+  </div>
+</div>

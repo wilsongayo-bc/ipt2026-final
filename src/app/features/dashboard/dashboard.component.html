@@ -1,0 +1,79 @@
+<div class="dashboard">
+  <header class="dashboard-header">
+    <div class="header-brand-nav">
+      <h1>Dashboard</h1>
+      <nav class="header-nav" aria-label="Primary navigation">
+        <a routerLink="/dashboard" class="nav-link active">Overview</a>
+        @if (isAdmin()) {
+          <a routerLink="/users" class="nav-link">User Management</a>
+        }
+      </nav>
+    </div>
+
+    @if (currentUser(); as user) {
+      <div class="user-info">
+        <span class="user-greeting">
+          {{ user.name }} · {{ user.role }}
+        </span>
+        <button (click)="logout()" class="btn btn-secondary">Logout</button>
+      </div>
+    }
+  </header>
+
+  <main class="dashboard-content">
+    <div class="welcome-card">
+      <h2>Welcome to Your Dashboard</h2>
+      @if (currentUser(); as user) {
+        <p>
+          You are logged in as <strong>{{ user.email }}</strong>
+        </p>
+        <p>
+          Role: <strong>{{ user.role }}</strong>
+        </p>
+        @if (user.age !== undefined) {
+          <p class="tabular-date">Age: {{ user.age }}</p>
+        }
+        <p class="tabular-date">
+          Account created: {{ user.createdAt | date: 'medium' }}
+        </p>
+      }
+
+      <div class="card-actions">
+        <button
+          type="button"
+          (click)="refreshProfile()"
+          [disabled]="isRefreshing()"
+          class="btn btn-primary"
+        >
+          @if (isRefreshing()) {
+            Verifying Session...
+          } @else {
+            Verify Session (/api/auth/me)
+          }
+        </button>
+
+        @if (isAdmin()) {
+          <a routerLink="/users" class="btn btn-secondary">
+            Manage Users
+          </a>
+        }
+      </div>
+
+      @if (refreshStatus()) {
+        <div class="alert alert-success preview-login-link">
+          {{ refreshStatus() }}
+        </div>
+      }
+    </div>
+
+    <div class="info-card">
+      <h3>Your Authentication Status</h3>
+      <ul>
+        <li>✓ JWT Token stored in reactive Signal memory</li>
+        <li>✓ Email verified</li>
+        <li>✓ Protected routes enforced by Auth & Admin Guards</li>
+        <li>✓ Automatic Bearer token attachment via Interceptor</li>
+      </ul>
+    </div>
+  </main>
+</div>

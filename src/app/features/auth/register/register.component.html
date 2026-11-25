@@ -1,0 +1,124 @@
+<div class="auth-container">
+  <div class="auth-card">
+    <h1>Create Account</h1>
+    <p class="subtitle">Join us today</p>
+
+    @if (successMessage()) {
+      <div class="alert alert-success">
+        <strong>✓ Success!</strong> {{ successMessage() }}
+        @if (previewUrl()) {
+          <div class="email-preview">
+            <span class="email-preview-label">Simulated Verification Email</span>
+            <button
+              type="button"
+              (click)="openPreviewLink()"
+              class="btn btn-primary email-preview-btn"
+            >
+              Verify Email Now
+            </button>
+          </div>
+        }
+        <div class="preview-login-link">
+          <a routerLink="/auth/login" class="link">Go to login</a>
+        </div>
+      </div>
+    }
+
+    @if (error() && !successMessage()) {
+      <div class="alert alert-error">
+        {{ error() }}
+      </div>
+    }
+
+    @if (!successMessage()) {
+      <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+        <div class="form-group">
+          <label for="name">Full Name</label>
+          <input
+            type="text"
+            id="name"
+            formControlName="name"
+            placeholder="John Doe"
+            [class.error]="f.name.touched && f.name.invalid"
+          />
+          @if (f.name.touched && f.name.invalid) {
+            <small class="error-message">
+              Name is required (at least 2 characters)
+            </small>
+          }
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input
+            type="email"
+            id="email"
+            formControlName="email"
+            placeholder="you@example.com"
+            [class.error]="f.email.touched && f.email.invalid"
+          />
+          @if (f.email.touched && f.email.invalid) {
+            <small class="error-message">Valid email required</small>
+          }
+        </div>
+
+        <div class="form-group">
+          <label for="age">Age (optional)</label>
+          <input
+            type="number"
+            id="age"
+            formControlName="age"
+            placeholder="21"
+            [class.error]="f.age.touched && f.age.invalid"
+          />
+          @if (f.age.touched && f.age.invalid) {
+            <small class="error-message">Age must be between 13 and 120</small>
+          }
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            formControlName="password"
+            placeholder="••••••••"
+            [class.error]="f.password.touched && f.password.invalid"
+          />
+          @if (f.password.touched && f.password.invalid) {
+            <small class="error-message">
+              Min 8 chars, 1 letter, 1 number
+            </small>
+          }
+        </div>
+
+        <div class="form-group">
+          <label for="confirmPassword">Confirm Password</label>
+          <input
+            type="password"
+            id="confirmPassword"
+            formControlName="confirmPassword"
+            placeholder="••••••••"
+            [class.error]="f.confirmPassword.touched && f.confirmPassword.invalid"
+          />
+          @if (f.confirmPassword.touched && f.confirmPassword.invalid) {
+            <small class="error-message">Please confirm your password</small>
+          }
+        </div>
+
+        <button type="submit" class="btn btn-primary" [disabled]="isLoading()">
+          @if (isLoading()) {
+            Creating account...
+          } @else {
+            Create Account
+          }
+        </button>
+      </form>
+    }
+
+    <p class="auth-footer">
+      Already have an account?
+      <a routerLink="/auth/login" class="link">Sign in</a>
+    </p>
+  </div>
+</div>

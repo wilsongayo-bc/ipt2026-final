@@ -1,0 +1,30 @@
+<div class="auth-container">
+  <div class="auth-card">
+    @switch (status()) {
+      @case ('loading') {
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <h2>Verifying your email...</h2>
+        </div>
+      }
+      @case ('success') {
+        <div class="success-state">
+          <div class="icon success-icon">✓</div>
+          <h2>Email Verified!</h2>
+          <p>{{ message() }}</p>
+          <a routerLink="/auth/login" class="btn btn-primary">Go to Login</a>
+        </div>
+      }
+      @case ('error') {
+        <div class="error-state">
+          <div class="icon error-icon">✗</div>
+          <h2>Verification Failed</h2>
+          <p>{{ message() }}</p>
+          <a routerLink="/auth/login" class="btn btn-secondary">
+            Back to Login
+          </a>
+        </div>
+      }
+    }
+  </div>
+</div>
