@@ -1,0 +1,394 @@
+<div class="dashboard">
+  <header class="dashboard-header">
+    <div class="header-brand-nav">
+      <h1>Task Management</h1>
+      <nav class="header-nav" aria-label="Primary navigation">
+        <a routerLink="/dashboard" class="nav-link">Overview</a>
+        <a routerLink="/tasks" class="nav-link active">Tasks</a>
+        @if (isAdmin()) {
+          <a routerLink="/users" class="nav-link">User Management</a>
+        }
+      </nav>
+    </div>
+
+    @if (currentUser(); as user) {
+      <div class="user-info">
+        <span class="user-greeting">
+          {{ user.name }} · {{ user.role }}
+        </span>
+        <button (click)="logout()" class="btn btn-secondary">Logout</button>
+      </div>
+    }
+  </header>
+
+  <main class="dashboard-content">
+    <div class="welcome-card">
+      <div class="users-header-row">
+        <div>
+          @if (isAdmin()) {
+            <h2>All Tasks</h2>
+          } @else {
+            <h2>My Tasks</h2>
+          }
+          <p class="users-summary tabular-date">
+            {{ tasks().length }} total · {{ pendingCount() }} Pending ·
+            {{ doneCount() }} Done · {{ disabledCount() }} Disabled
+          </p>
+        </div>
+
+        <div class="header-actions-group">
+          <button
+            type="button"
+            (click)="openCreateForm()"
+            class="btn btn-primary btn-auto"
+          >
+            New Task
+          </button>
+          <button
+            type="button"
+            (click)="refresh()"
+            [disabled]="isLoading()"
+            class="btn btn-secondary btn-auto"
+          >
+            @if (isLoading()) {
+              Refreshing...
+            } @else {
+              Refresh
+            }
+          </button>
+        </div>
+      </div>
+
+      @if (error()) {
+        <div class="alert alert-error">
+          {{ error() }}
+        </div>
+      }
+
+      @if (successMessage()) {
+        <div class="alert alert-success">
+          {{ successMessage() }}
+        </div>
+      }
+
+      @if (showForm()) {
+        <form
+          [formGroup]="taskForm"
+          (ngSubmit)="onSubmit()"
+          class="inline-panel-form"
+        >
+          <h3>
+            @if (editingTaskId() !== null) {
+              Edit Task
+            } @else {
+              Create New Task
+            }
+          </h3>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="taskTitle">Title</label>
+              <input
+                type="text"
+                id="taskTitle"
+                formControlName="title"
+                placeholder="Complete Module 11 lab"
+                [class.error]="tf.title.touched && tf.title.invalid"
+              />
+              @if (tf.title.touched && tf.title.invalid) {
+                <small class="error-message">
+                  Title is required (2–140 characters)
+                </small>
+              }
+            </div>
+
+            <div class="form-group">
+              <label for="taskPriority">Priority</label>
+              <select
+                id="taskPriority"
+                formControlName="priority"
+                class="form-select"
+              >
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="taskDueDate">Due Date (optional)</label>
+              <input
+                type="date"
+                id="taskDueDate"
+                formControlName="dueDate"
+              />
+            </div>
+
+            @if (isAdmin()) {
+              <div class="form-group">
+                <label for="taskAssignee">Assign To</label>
+                <select
+                  id="taskAssignee"
+                  formControlName="userId"
+                  class="form-select"
+                >
+                  @for (assignee of assignees(); track assignee.id) {
+                    <option [value]="assignee.id">
+                      {{ assignee.name }} ({{ assignee.role }})
+                    </option>
+                  }
+                </select>
+              </div>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="taskDescription">Description (optional)</label>
+            <textarea
+              id="taskDescription"
+              formControlName="description"
+              rows="2"
+              class="form-textarea"
+              placeholder="Add task details..."
+            ></textarea>
+          </div>
+
+          <div class="inline-form-actions">
+            <button
+              type="submit"
+              class="btn btn-primary btn-auto"
+              [disabled]="isSubmittingForm()"
+            >
+              @if (isSubmittingForm()) {
+                Saving...
+              } @else if (editingTaskId() !== null) {
+                Save Changes
+              } @else {
+                Create Task
+              }
+            </button>
+            <button
+              type="button"
+              (click)="closeForm()"
+              class="btn btn-secondary btn-auto"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      }
+
+      <div class="users-toolbar">
+        <input
+          type="search"
+          class="search-input"
+          placeholder="Search tasks..."
+          [value]="searchQuery()"
+          (input)="onSearch($event)"
+          aria-label="Search tasks"
+        />
+
+        <div class="tasks-filters-group">
+          <div class="filter-tabs" role="group" aria-label="Filter by status">
+            <button
+              type="button"
+              class="filter-tab"
+              [class.active]="statusFilter() === 'all'"
+              (click)="setStatusFilter('all')"
+            >
+              All
+            </button>
+            <button
+              type="button"
+              class="filter-tab"
+              [class.active]="statusFilter() === 'Pending'"
+              (click)="setStatusFilter('Pending')"
+            >
+              Pending
+            </button>
+            <button
+              type="button"
+              class="filter-tab"
+              [class.active]="statusFilter() === 'Done'"
+              (click)="setStatusFilter('Done')"
+            >
+              Done
+            </button>
+          </div>
+
+          <select
+            class="role-select"
+            aria-label="Filter by priority"
+            [value]="priorityFilter()"
+            (change)="onPriorityFilterChange($event)"
+          >
+            <option value="all">All Priorities</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+
+          @if (isAdmin()) {
+            <select
+              class="role-select"
+              aria-label="Filter by assignee"
+              [value]="assigneeFilter()"
+              (change)="onAssigneeFilterChange($event)"
+            >
+              <option value="all">All Users</option>
+              @for (assignee of assignees(); track assignee.id) {
+                <option [value]="assignee.id">
+                  {{ assignee.name }}
+                </option>
+              }
+            </select>
+
+            <select
+              class="role-select"
+              aria-label="Filter by disabled state"
+              [value]="disabledFilter()"
+              (change)="onDisabledFilterChange($event)"
+            >
+              <option value="all">All States</option>
+              <option value="active">Active Only</option>
+              <option value="disabled">Disabled Only</option>
+            </select>
+          }
+        </div>
+      </div>
+
+      @if (isLoading() && tasks().length === 0) {
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Loading tasks...</p>
+        </div>
+      } @else if (filteredTasks().length === 0) {
+        <div class="empty-state">
+          <p>No tasks found. Create a new task to get started.</p>
+        </div>
+      } @else {
+        <div class="table-wrapper">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Task</th>
+                @if (isAdmin()) {
+                  <th>Assignee</th>
+                }
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Due</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (task of filteredTasks(); track task.id) {
+                <tr [class.row-disabled]="task.isDisabled">
+                  <td class="tabular-date">#{{ task.id }}</td>
+                  <td>
+                    <div
+                      class="user-cell-name"
+                      [class.task-done-title]="task.status === 'Done'"
+                    >
+                      {{ task.title }}
+                    </div>
+                    @if (task.description) {
+                      <div class="user-cell-email">{{ task.description }}</div>
+                    }
+                  </td>
+                  @if (isAdmin()) {
+                    <td>
+                      <div class="user-cell-name">{{ task.assigneeName }}</div>
+                      <div class="user-cell-email">
+                        {{ task.assigneeEmail }}
+                      </div>
+                    </td>
+                  }
+                  <td>
+                    <span
+                      class="priority-text"
+                      [class.priority-high]="task.priority === 'High'"
+                      [class.priority-medium]="task.priority === 'Medium'"
+                      [class.priority-low]="task.priority === 'Low'"
+                    >
+                      {{ task.priority }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="status-text">
+                      @if (task.status === 'Done') {
+                        <span class="text-success">Done</span>
+                      } @else {
+                        <span>Pending</span>
+                      }
+                      @if (task.isDisabled) {
+                        · <span class="text-danger">Disabled</span>
+                      }
+                    </span>
+                  </td>
+                  <td class="tabular-date">
+                    @if (task.dueDate) {
+                      {{ task.dueDate }}
+                    } @else {
+                      <span class="muted-text">—</span>
+                    }
+                  </td>
+                  <td>
+                    <div class="row-actions">
+                      <button
+                        type="button"
+                        class="btn btn-sm"
+                        [class.btn-primary]="task.status === 'Pending'"
+                        [class.btn-secondary]="task.status === 'Done'"
+                        [disabled]="
+                          task.isDisabled || updatingTaskId() === task.id
+                        "
+                        (click)="toggleDone(task)"
+                      >
+                        @if (task.status === 'Done') {
+                          Reopen
+                        } @else {
+                          Mark Done
+                        }
+                      </button>
+
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-secondary"
+                        [disabled]="
+                          (!isAdmin() && task.isDisabled) ||
+                          updatingTaskId() === task.id
+                        "
+                        (click)="openEditForm(task)"
+                      >
+                        Edit
+                      </button>
+
+                      @if (isAdmin()) {
+                        <button
+                          type="button"
+                          class="btn btn-sm"
+                          [class.btn-danger]="!task.isDisabled"
+                          [class.btn-secondary]="task.isDisabled"
+                          [disabled]="updatingTaskId() === task.id"
+                          (click)="toggleDisabled(task)"
+                        >
+                          @if (task.isDisabled) {
+                            Enable
+                          } @else {
+                            Disable
+                          }
+                        </button>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </main>
+</div>
