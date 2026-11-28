@@ -46,6 +46,18 @@
           </button>
           <button
             type="button"
+            (click)="summarizeFilteredTasks()"
+            [disabled]="isSummarizing() || filteredTasks().length === 0"
+            class="btn btn-secondary btn-auto"
+          >
+            @if (isSummarizing()) {
+              Summarizing...
+            } @else {
+              Summarize with AI
+            }
+          </button>
+          <button
+            type="button"
             (click)="refresh()"
             [disabled]="isLoading()"
             class="btn btn-secondary btn-auto"
@@ -256,6 +268,93 @@
           }
         </div>
       </div>
+
+      @if (isSummarizing() || aiError() || aiSummary()) {
+        <section class="ai-summary-panel" aria-live="polite">
+          <div class="ai-summary-header">
+            <div>
+              <h3>AI Task Summary</h3>
+              @if (aiSummary(); as summary) {
+                <p class="ai-summary-meta tabular-date">
+                  {{ summary.model }} · {{ summary.taskCount }} tasks ·
+                  {{ summary.generatedAt | date: 'shortTime' }}
+                </p>
+              } @else if (isSummarizing()) {
+                <p class="ai-summary-meta">
+                  Analyzing currently filtered tasks with Groq open-source LLM...
+                </p>
+              }
+            </div>
+
+            <div class="header-actions-group">
+              @if (aiSummary() || aiError()) {
+                <button
+                  type="button"
+                  class="btn btn-sm btn-secondary"
+                  [disabled]="isSummarizing() || filteredTasks().length === 0"
+                  (click)="summarizeFilteredTasks()"
+                >
+                  @if (isSummarizing()) {
+                    Refreshing...
+                  } @else {
+                    Refresh Summary
+                  }
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-secondary"
+                  [disabled]="isSummarizing()"
+                  (click)="dismissAiSummary()"
+                >
+                  Dismiss
+                </button>
+              }
+            </div>
+          </div>
+
+          @if (isSummarizing() && !aiSummary()) {
+            <div class="ai-summary-loading">
+              <div class="spinner"></div>
+              <p>Generating overview, priority focus, and next-step ideas...</p>
+            </div>
+          }
+
+          @if (aiError()) {
+            <div class="alert alert-error">
+              {{ aiError() }}
+            </div>
+          }
+
+          @if (aiSummary(); as summary) {
+            <div class="ai-summary-body">
+              <div class="ai-summary-overview">
+                <h4>Overview</h4>
+                <p>{{ summary.overview }}</p>
+              </div>
+
+              <div class="ai-summary-columns">
+                <div class="ai-summary-section">
+                  <h4>Priority Focus</h4>
+                  <ul class="ai-summary-list">
+                    @for (item of summary.priorityFocus; track $index) {
+                      <li>{{ item }}</li>
+                    }
+                  </ul>
+                </div>
+
+                <div class="ai-summary-section">
+                  <h4>Next-Step Ideas</h4>
+                  <ul class="ai-summary-list">
+                    @for (idea of summary.nextStepIdeas; track $index) {
+                      <li>{{ idea }}</li>
+                    }
+                  </ul>
+                </div>
+              </div>
+            </div>
+          }
+        </section>
+      }
 
       @if (isLoading() && tasks().length === 0) {
         <div class="loading-state">

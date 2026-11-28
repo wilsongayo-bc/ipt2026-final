@@ -35,6 +35,9 @@ export class TasksComponent implements OnInit {
   updatingTaskId = this.taskService.updatingTaskId;
   error = this.taskService.error;
   successMessage = this.taskService.successMessage;
+  aiSummary = this.taskService.aiSummary;
+  isSummarizing = this.taskService.isSummarizing;
+  aiError = this.taskService.aiError;
   pendingCount = this.taskService.pendingCount;
   doneCount = this.taskService.doneCount;
   disabledCount = this.taskService.disabledCount;
@@ -102,6 +105,7 @@ export class TasksComponent implements OnInit {
 
   ngOnInit(): void {
     this.taskService.clearMessages();
+    this.taskService.clearAiSummary();
     this.taskService.loadTasks().subscribe({
       error: (err) => console.error('Failed to load tasks:', err),
     });
@@ -111,6 +115,22 @@ export class TasksComponent implements OnInit {
         error: (err) => console.error('Failed to load assignees:', err),
       });
     }
+  }
+
+  summarizeFilteredTasks(): void {
+    const taskIds = this.filteredTasks()
+      .slice(0, 50)
+      .map((task) => task.id);
+    if (taskIds.length === 0 || this.isSummarizing()) {
+      return;
+    }
+    this.taskService.summarizeTasks(taskIds).subscribe({
+      error: (err) => console.error('Failed to summarize tasks:', err),
+    });
+  }
+
+  dismissAiSummary(): void {
+    this.taskService.clearAiSummary();
   }
 
   openCreateForm(): void {

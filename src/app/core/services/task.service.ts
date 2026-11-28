@@ -39,6 +39,15 @@ export interface UpdateTaskRequest {
   userId?: number;
 }
 
+export interface TaskAiSummary {
+  model: string;
+  taskCount: number;
+  generatedAt: string;
+  overview: string;
+  priorityFocus: string[];
+  nextStepIdeas: string[];
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -53,6 +62,9 @@ export class TaskService {
   private updatingTaskIdSignal = signal<number | null>(null);
   private errorSignal = signal<string | null>(null);
   private successSignal = signal<string | null>(null);
+  private aiSummarySignal = signal<TaskAiSummary | null>(null);
+  private summarizingSignal = signal<boolean>(false);
+  private aiErrorSignal = signal<string | null>(null);
 
   tasks = computed(() => this.tasksSignal());
   assignees = computed(() => this.assigneesSignal());
@@ -61,6 +73,9 @@ export class TaskService {
   updatingTaskId = computed(() => this.updatingTaskIdSignal());
   error = computed(() => this.errorSignal());
   successMessage = computed(() => this.successSignal());
+  aiSummary = computed(() => this.aiSummarySignal());
+  isSummarizing = computed(() => this.summarizingSignal());
+  aiError = computed(() => this.aiErrorSignal());
 
   pendingCount = computed(
     () =>
@@ -194,6 +209,38 @@ export class TaskService {
         }),
         map((response) => response.data!),
       );
+  }
+
+  summarizeTasks(taskIds: number[]): Observable<TaskAiSummary> {
+    this.summarizingSignal.set(true);
+    this.aiErrorSignal.set(null);
+
+    return this.http
+      .post<ApiResponse<TaskAiSummary>>(`${this.apiUrl}/tasks/summarize`, {
+        taskIds,
+      })
+      .pipe(
+        tap({
+          next: (response) => {
+            if (response.data) {
+              this.aiSummarySignal.set(response.data);
+            }
+            this.summarizingSignal.set(false);
+          },
+          error: (err) => {
+            this.summarizingSignal.set(false);
+            this.aiErrorSignal.set(
+              err.error?.error?.message || 'Failed to summarize tasks with AI',
+            );
+          },
+        }),
+        map((response) => response.data!),
+      );
+  }
+
+  clearAiSummary(): void {
+    this.aiSummarySignal.set(null);
+    this.aiErrorSignal.set(null);
   }
 
   clearMessages(): void {
